@@ -18,34 +18,40 @@ across all websites but (b) only through JavaScript access control.
 partitioned and only JavaScript running within the iframe can read or modify the
 data.
 
-All of the FLEDGE APIs that return responses are asynchronous, which means we
-can implement them as sending a `postMessage` to the shim iframe and waiting for
-it to `postMessage` back a response.
+The shim is divided into two pieces:
+
+* A *binary* that runs in a cross origin iframe, such as
+  `https://fledge-shim.example/v/1234`.
+
+* A *library* that consumers compile into their code, and which communicates
+  with the binary over `postMessage`.
+
+Almost all of the work happens in the binary; the library is a small adapter
+that translate the API from functions to messages.
 
 ## API
 
-We're planning to implement the API as close as possible to what is presented in
-the spec, but some aspects necessarily differ due to the constraints of running
-on publisher and advertiser pages, and implementing in pure JS.
+We're planning to implement the API as closely as possible to what is presented
+in the spec, but some aspects necessarily differ due to the constraints of
+running on publisher and advertiser pages, and implementing in pure JS.
 
 ### On-Page API
 
-To make the API available on a page consumers will compile it into their code.
-We're thinking of making it available as an NPM package, or people can pull from
-github manually
+To make the API available on a page consumers will compile the library into
+their code.  We're thinking of making it available as an NPM package, or people
+can pull from github manually.
 
 #### Initialization
 
-Consumers will want to compile the shim into their code without instantiating a
-cross-origin iframe on every page. At the same time, consumers may want to start
-setting up the frame before it is needed. This means we need an optional
-initialization call:
+The library needs to know how to load the binary on the page, and this needs to
+happen before any library calls that communicate with a binary.
 
 ```javascript
-fledgeShim.initialize();
+fledgeShim.initialize('https://fledge-polyfill.example');
 ```
 
-It's fine to omit this call, but it will be slightly less performant.
+The initialization call takes the origin of the binary only. Versioning
+parameters are added automatically.
 
 #### Joining Interest Groups
 
