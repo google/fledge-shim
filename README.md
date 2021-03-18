@@ -23,8 +23,8 @@ The shim is divided into two pieces:
 * A *binary* that runs in a cross origin iframe, such as
   `https://fledge-shim.example/v/1234`.
 
-* A *library* that consumers compile into their code, and which communicates
-  with the binary over `postMessage`.
+* A *library* that consumers use to communicate with the binary over
+  `postMessage`.
 
 Almost all of the work happens in the binary; the library is a small adapter
 that translate the API from functions to messages.
@@ -33,7 +33,8 @@ that translate the API from functions to messages.
 
 We're planning to implement the API as closely as possible to what is presented
 in the spec, but some aspects necessarily differ due to the constraints of
-running on publisher and advertiser pages, and implementing in pure JS.
+running on publisher and advertiser pages, and implementing without browser
+changes.
 
 ### On-Page API
 
@@ -77,7 +78,8 @@ accept.
 #### Initiating an On-Device Auction
 
 ```javascript
-const auctionResultPromise = fledgeShim.runAdAuction(myAuctionConfig);
+// auctionWinnerUrl is an opaque token, and not the real rendering url
+const auctionWinnerUrl = await fledgeShim.runAdAuction(myAuctionConfig);
 ```
 
 All auction configuration options will be supported, but `decision_logic_url`
@@ -86,13 +88,9 @@ All auction configuration options will be supported, but `decision_logic_url`
 #### Rendering a winning ad
 
 ```javascript
-const auctionResultPromise = fledgeShim.runAdAuction(myAuctionConfig);
-auctionResultPromise.then((auctionWinnerUrl) => {
-  // auctionWinnerUrl is an opaque token, and not the real rendering url
-  var adFrame = document.createElement('iframe');
-  // set whatever attributes you like on adFrame, and then call:
-  fledgeShim.renderAd(adFrame, auctionWinnerUrl);
-});
+var adFrame = document.createElement('iframe');
+// set whatever attributes you like on adFrame, and then call:
+fledgeShim.renderAd(adFrame, auctionWinnerUrl);
 ```
 
 Because fencedframes don't exist yet, this will render the ad in an
