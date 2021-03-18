@@ -113,8 +113,9 @@ The spec allows buyers and sellers to provide custom JavaScript (`generate_bid`,
 compatible with the privacy model, because these worklets are heavily locked
 down, have no network access, and operate as pure functions.  Implementing these
 features without turtledove worklets may be challenging, and we have not yet
-chosen a design.  We are considering using the Realms shim, which would allow
-efficiently and safely executing arbitrary JS.
+chosen a design.  We are considering using the [Realms
+shim](https://github.com/Agoric/realms-shim), which would allow efficiently and
+safely executing arbitrary JS.
 
 #### Reporting
 
