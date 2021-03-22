@@ -109,11 +109,11 @@ same page that called `runAdAuction`.
 The spec allows buyers and sellers to provide custom JavaScript (`generate_bid`,
 `score_ad`) which will have access to interest group information. That access is
 compatible with the privacy model, because these worklets are heavily locked
-down, have no network access, and operate as pure functions.  Implementing these
-features without turtledove worklets may be challenging, and we have not yet
-chosen a design.  We are considering using the [Realms
-shim](https://github.com/Agoric/realms-shim), which would allow efficiently and
-safely executing arbitrary JS.
+down, have no network access, and operate as pure functions.  We are not aware
+of any secure way to execute arbitrary JavaScript while protecting information
+from exfiltration.  Initially, we are planning to require buyers and sellers to
+check their logic into this repo.  Later, we may be able to use Web Assembly or
+something custom to avoid that requirement.
 
 #### Reporting
 
