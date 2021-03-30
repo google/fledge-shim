@@ -1,0 +1,32 @@
+{
+  "name": "fledge-shim",
+  "version": "0.1.0",
+  "description": "A pure-JavaScript implementation of the FLEDGE spec.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/google/fledge-shim.git"
+  },
+  "keywords": [
+    "FLEDGE",
+    "TURTLEDOVE",
+    "Privacy Sandbox"
+  ],
+  "author": "Google LLC",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/google/fledge-shim/issues"
+  },
+  "homepage": "https://github.com/google/fledge-shim#readme",
+  "dependencies": {
+    "tslib": "^2.1.0"
+  },
+  "ngPackage": {
+    "lib": {
+      "entryFile": "public_api.ts"
+    },
+    "dest": "../dist/fledge-shim"
+  },
+  "publishConfig": {
+    "registry": "https://wombat-dressing-room.appspot.com"
+  }
+}
