@@ -115,6 +115,11 @@ from exfiltration. Initially, we are planning to require buyers and sellers to
 check their logic into this repo. Later, we may be able to use Web Assembly or
 something custom to avoid that requirement.
 
+Users may wish to test FLEDGE in circumstances where the privacy guarantees are
+not necessary, such as internal end-to-end testing.  We will probably build
+support for running custom JavaScript in WebWorkers, behind a compile-time
+"testing only" flag.
+
 #### Reporting
 
 Because the MVP allows event level reporting, we do not need the same level of
