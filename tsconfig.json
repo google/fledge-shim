@@ -3,8 +3,11 @@
     "importHelpers": true,
     "target": "ES2020",
     "strict": true,
+    "baseUrl": ".",
     "esModuleInterop": true,
+    "moduleResolution": "Node",
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
-  }
+  },
+  "angularCompilerOptions": { "enableIvy": false }
 }

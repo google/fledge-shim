@@ -116,7 +116,7 @@ check their logic into this repo. Later, we may be able to use Web Assembly or
 something custom to avoid that requirement.
 
 Users may wish to test FLEDGE in circumstances where the privacy guarantees are
-not necessary, such as internal end-to-end testing.  We will probably build
+not necessary, such as internal end-to-end testing. We will probably build
 support for running custom JavaScript in WebWorkers, behind a compile-time
 "testing only" flag.
 
