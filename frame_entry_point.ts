@@ -9,6 +9,6 @@
  * in the frame.
  */
 
-import { main } from "./internal/main";
+import { main } from "./frame/main";
 
-main();
+main(window);

@@ -5,23 +5,3 @@
  */
 
 import "jasmine";
-
-import { joinAdInterestGroup, runAdAuction } from "./public_api";
-
-describe("joinAdInterestGroup", () => {
-  it("should throw", () => {
-    expect(joinAdInterestGroup).toThrow();
-  });
-});
-
-describe("leaveAdInterestGroup", () => {
-  it("should throw", () => {
-    expect(joinAdInterestGroup).toThrow();
-  });
-});
-
-describe("runAdAuction", () => {
-  it("should throw", () => {
-    expect(runAdAuction).toThrow();
-  });
-});

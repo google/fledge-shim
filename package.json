@@ -1,20 +1,23 @@
 {
   "private": true,
   "scripts": {
-    "build": "webpack --config=./frame/webpack.config.js && ng-packagr --project=./lib/package.json",
+    "build": "webpack && ng-packagr --project=./lib/package.json --config=./tsconfig.json",
     "check-format": "prettier --check .",
     "format": "prettier --write .",
-    "lint": "eslint --ext=.ts .",
+    "lint": "eslint --max-warnings=0 .",
     "test": "karma start --single-run"
   },
   "dependencies": {
-    "tslib": "^2.1.0"
+    "idb-keyval": "^5.0.4",
+    "tslib": "^2.1.0",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@angular/compiler": "^11.2.7",
     "@angular/compiler-cli": "^11.2.7",
     "@angular/core": "^11.2.7",
     "@types/jasmine": "^3.6.9",
+    "@types/uuid": "^8.3.0",
     "@typescript-eslint/eslint-plugin": "^4.20.0",
     "@typescript-eslint/parser": "^4.20.0",
     "eslint": "^7.23.0",

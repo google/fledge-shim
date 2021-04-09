@@ -10,7 +10,7 @@ const TerserPlugin = require("terser-webpack-plugin");
 const path = require("path");
 
 module.exports = {
-  entry: path.resolve(__dirname, "entry_point.ts"),
+  entry: path.resolve(__dirname, "frame_entry_point.ts"),
   mode: "production",
   module: { rules: [{ test: /\.ts$/, loader: "ts-loader" }] },
   resolve: { extensions: [".ts"] },

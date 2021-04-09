@@ -7,9 +7,13 @@
 module.exports = (config) => {
   config.set({
     frameworks: ["jasmine", "karma-typescript"],
-    files: ["lib/**/*.ts"],
+    files: ["frame/**/*.ts", "lib/**/*.ts"],
     preprocessors: { "**/*.ts": "karma-typescript" },
     reporters: ["progress", "karma-typescript"],
-    browsers: ["Chrome"],
+    browsers: ["ChromeHeadless"],
+    karmaTypescriptConfig: {
+      compilerOptions: { module: "commonjs" },
+      tsconfig: "./tsconfig.json",
+    },
   });
 };
