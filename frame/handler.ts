@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/** @fileoverview TODO */
+/**
+ * @fileoverview Dispatcher that does basic validation on requests and then
+ * forwards them to the appropriate function.
+ */
 
-import * as uuid from "uuid";
 import {
   RequestTag,
   isJoinAdInterestGroupRequest,
@@ -15,22 +17,21 @@ import {
   RunAdAuctionResponse,
 } from "../lib/shared/protocol";
 import { isArray } from "../lib/shared/types";
-import { errorMessage } from "./error";
-import { setInterestGroupAds, deleteInterestGroup, getAllAds } from "./storage";
+import { runAdAuction } from "./auction";
+import { setInterestGroupAds, deleteInterestGroup } from "./database";
 
 /**
- * TODO
+ * Handles a `MessageEvent` representing a request to the FLEDGE API, and sends
+ * a response via the provided ports if needed.
  *
- * @param callbackForTesting TODO
+ * If an error occurs, a message is sent to each provided port so that the
+ * caller doesn't hang.
  */
-export async function handleRequest(
-  { data, ports }: MessageEvent<unknown>,
-  callbackForTesting: () => void = () => {
-    // Do nothing
-  }
-): Promise<void> {
+export async function handleRequest({
+  data,
+  ports,
+}: MessageEvent<unknown>): Promise<void> {
   try {
-    callbackForTesting();
     function checkData(condition: boolean): asserts condition {
       if (!condition) {
         throw new Error(`Malformed request: ${JSON.stringify(data)}`);
@@ -56,40 +57,24 @@ export async function handleRequest(
         checkData(isRunAdAuctionRequest(request));
         if (ports.length !== 1) {
           throw new Error(
-            `Port transfer mismatch during handshake: expected 1 port, but received ${ports.length}`
+            `Port transfer mismatch during request: expected 1 port, but received ${ports.length}`
           );
         }
         const [port] = ports;
         const token = await runAdAuction();
-        const response: RunAdAuctionResponse = [token];
+        const response: RunAdAuctionResponse = [true, token];
         port.postMessage(response);
+        port.close();
         return;
       }
       default:
         checkData(false);
     }
   } catch (error: unknown) {
-    const message = errorMessage(error);
+    const response: RunAdAuctionResponse = [false];
     for (const port of ports) {
-      port.postMessage(message);
+      port.postMessage(response);
     }
+    throw error;
   }
-}
-
-async function runAdAuction() {
-  const ads = await getAllAds();
-  const firstAdResult = ads.next();
-  if (firstAdResult.done) {
-    return null;
-  }
-  let [winningRenderingUrl, winningCpmInUsd] = firstAdResult.value;
-  for (const [renderingUrl, cpmInUsd] of ads) {
-    if (cpmInUsd > winningCpmInUsd) {
-      winningRenderingUrl = renderingUrl;
-      winningCpmInUsd = cpmInUsd;
-    }
-  }
-  const token = uuid.v4();
-  sessionStorage.setItem(token, winningRenderingUrl);
-  return token;
 }
