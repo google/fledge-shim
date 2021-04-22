@@ -1,4 +1,5 @@
 {
+  "exclude": ["dist/"],
   "compilerOptions": {
     "importHelpers": true,
     "target": "ES2020",

@@ -30,7 +30,12 @@ module.exports = {
   rules: {
     "max-len": [
       "warn",
-      { comments: 80, ignoreUrls: true, ignoreTemplateLiterals: true },
+      {
+        comments: 80,
+        ignoreUrls: true,
+        ignoreStrings: true,
+        ignoreTemplateLiterals: true,
+      },
     ],
     "no-inner-declarations": "off",
     "require-jsdoc": "off",
@@ -72,6 +77,7 @@ module.exports = {
     {
       files: ["*_test.ts"],
       rules: {
+        "@typescript-eslint/no-non-null-assertion": "off",
         "jsdoc/require-file-overview": [
           "error",
           {
