@@ -100,7 +100,7 @@ describe("handleRequest", () => {
     const { data } = await messageEventPromise;
     expect(isRunAdAuctionResponse(data)).toBeTrue();
     expect((data as RunAdAuctionResponse)[0]).toBeTrue();
-    expect(sessionStorage.getItem((data as [true, string])[1])).toEqual(
+    expect(sessionStorage.getItem((data as [true, string])[1])).toBe(
       renderingUrl
     );
   });

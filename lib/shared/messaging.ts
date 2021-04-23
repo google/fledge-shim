@@ -17,6 +17,14 @@ export function awaitMessageFromIframeToSelf(
 }
 
 /**
+ * Returns a promise that resolves to the first `MessageEvent` sent from the
+ * current window to itself.
+ */
+export function awaitMessageFromSelfToSelf(): Promise<MessageEvent<unknown>> {
+  return awaitMessage(window, ({ source }) => source === window);
+}
+
+/**
  * Returns a promise that resolves to the first `MessageEvent` sent to `port`,
  * which is activated if it hasn't been already.
  */

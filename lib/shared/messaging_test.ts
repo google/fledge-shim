@@ -5,7 +5,11 @@
  */
 
 import "jasmine";
-import { awaitMessageFromIframeToSelf, awaitMessageToPort } from "./messaging";
+import {
+  awaitMessageFromIframeToSelf,
+  awaitMessageFromSelfToSelf,
+  awaitMessageToPort,
+} from "./messaging";
 import { cleanDomAfterEach } from "./testing/dom";
 import {
   addMessagePortMatchers,
@@ -75,6 +79,33 @@ describe("messaging:", () => {
       document.body.appendChild(otherIframe);
       await expectAsync(messageEventPromise).toBePending();
       postMessageFromIframeToSelf(iframe, "payload", []);
+      await messageEventPromise;
+    });
+  });
+
+  describe("awaitMessageFromSelfToSelf", () => {
+    cleanDomAfterEach();
+
+    it("should receive a message", async () => {
+      const messageEventPromise = awaitMessageFromSelfToSelf();
+      const payload = crypto.getRandomValues(new Int32Array(1))[0];
+      const { port1, port2 } = new MessageChannel();
+      postMessage(payload, window.origin, [port1]);
+      const { data, origin, ports, source } = await messageEventPromise;
+      expect(data).toBe(payload);
+      expect(origin).toBe(window.origin);
+      expect(ports).toHaveSize(1);
+      await expectAsync(ports[0]).toBeEntangledWith(port2);
+      expect(source).toBe(window);
+    });
+
+    it("should ignore messages from other windows", async () => {
+      const iframe = document.createElement("iframe");
+      document.body.appendChild(iframe);
+      const messageEventPromise = awaitMessageFromSelfToSelf();
+      postMessageFromIframeToSelf(iframe, "wrong payload", []);
+      await expectAsync(messageEventPromise).toBePending();
+      postMessage("right payload", origin, []);
       await messageEventPromise;
     });
   });
