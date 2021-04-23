@@ -10,21 +10,17 @@
  */
 
 import { VERSION, VERSION_KEY } from "../lib/shared/version";
-import { errorMessage } from "./error";
 import { handleRequest } from "./handler";
 
 /**
  * Runs the frame code.
  *
- * @param win TODO
- * @param callbackForTesting TODO
+ * @param win The window whose parent the handshake message is sent to or that
+ * the ad is rendered into. This window's location fragment is used to decide
+ * what to do. In production, this is always the global `window` object; a
+ * friendly iframe may be used in unit tests.
  */
-export function main(
-  win: Window,
-  callbackForTesting: () => void = () => {
-    // Do nothing
-  }
-): void {
+export function main(win: Window): void {
   const parentOrigin = win.location.ancestorOrigins[0];
   if (parentOrigin === undefined) {
     throw new Error("Frame can't run as a top-level document");
@@ -33,25 +29,14 @@ export function main(
   if (fragment) {
     render(win.document, fragment);
   } else {
-    connect(win.parent, parentOrigin, callbackForTesting);
+    connect(win.parent, parentOrigin);
   }
 }
 
-function connect(
-  targetWindow: Window,
-  targetOrigin: string,
-  callbackForTesting: () => void
-) {
-  try {
-    callbackForTesting();
-    const { port1: receiver, port2: sender } = new MessageChannel();
-    receiver.onmessage = handleRequest;
-    targetWindow.postMessage({ [VERSION_KEY]: VERSION }, targetOrigin, [
-      sender,
-    ]);
-  } catch (error: unknown) {
-    targetWindow.postMessage(errorMessage(error), targetOrigin);
-  }
+function connect(targetWindow: Window, targetOrigin: string) {
+  const { port1: receiver, port2: sender } = new MessageChannel();
+  receiver.onmessage = handleRequest;
+  targetWindow.postMessage({ [VERSION_KEY]: VERSION }, targetOrigin, [sender]);
 }
 
 function render(doc: Document, fragment: string) {
