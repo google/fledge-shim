@@ -21,8 +21,6 @@ describe("messaging:", () => {
     it("should receive a message", async () => {
       const iframe = document.createElement("iframe");
       document.body.appendChild(iframe);
-      // Don't use awaitMessageFromIframeToSelf here because that function's own
-      // unit tests depend on postMessageFromIframeToSelf.
       const messageEventPromise = awaitMessageFromIframeToSelf(iframe);
       const payload = crypto.getRandomValues(new Int32Array(1))[0];
       const { port1, port2 } = new MessageChannel();
@@ -47,12 +45,20 @@ describe("messaging:", () => {
       await messageEventPromise;
     });
 
-    const POSTMESSAGE_SHAREDARRAYBUFFER_SRCDOC =
-      "<!DOCTYPE html><title>Helper</title><script>parent.postMessage(new SharedArrayBuffer(), '*');</script>";
+    // Deliberately triggering a messageerror from test code is surprisingly
+    // tricky. One thing that does it is attempting to send a WebAssembly
+    // module to a different agent cluster; see
+    // https://html.spec.whatwg.org/multipage/origin.html#origin-keyed-agent-clusters.
+    // Sandboxing an iframe without allow-same-origin puts it in a different
+    // agent cluster. The inline bytes are the binary encoding of the smallest
+    // legal WebAssembly module; see
+    // https://webassembly.github.io/spec/core/binary/modules.html#binary-module.
+    const POSTMESSAGE_WASM_MODULE_SRCDOC =
+      "<!DOCTYPE html><title>Helper</title><script>parent.postMessage(new WebAssembly.Module(Uint8Array.of(0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x00, 0x00)), '*');</script>";
 
     it("should reject on message error", async () => {
       const iframe = document.createElement("iframe");
-      iframe.srcdoc = POSTMESSAGE_SHAREDARRAYBUFFER_SRCDOC;
+      iframe.srcdoc = POSTMESSAGE_WASM_MODULE_SRCDOC;
       iframe.sandbox.add("allow-scripts");
       const messageEventPromise = awaitMessageFromIframeToSelf(iframe);
       document.body.appendChild(iframe);
@@ -64,7 +70,7 @@ describe("messaging:", () => {
       document.body.appendChild(iframe);
       const messageEventPromise = awaitMessageFromIframeToSelf(iframe);
       const otherIframe = document.createElement("iframe");
-      otherIframe.srcdoc = POSTMESSAGE_SHAREDARRAYBUFFER_SRCDOC;
+      otherIframe.srcdoc = POSTMESSAGE_WASM_MODULE_SRCDOC;
       otherIframe.sandbox.add("allow-scripts");
       document.body.appendChild(otherIframe);
       await expectAsync(messageEventPromise).toBePending();
