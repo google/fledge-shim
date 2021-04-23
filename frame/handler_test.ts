@@ -13,6 +13,7 @@ import {
   RunAdAuctionResponse,
 } from "../lib/shared/protocol";
 import { clearStorageBeforeAndAfter } from "../lib/shared/testing/storage";
+import { assert, nonNullish } from "../lib/shared/testing/types";
 import { Ad, getAllAds } from "./database";
 import { handleRequest } from "./handler";
 
@@ -98,10 +99,8 @@ describe("handleRequest", () => {
       })
     );
     const { data } = await messageEventPromise;
-    expect(isRunAdAuctionResponse(data)).toBeTrue();
-    expect((data as RunAdAuctionResponse)[0]).toBeTrue();
-    expect(sessionStorage.getItem((data as [true, string])[1])).toBe(
-      renderingUrl
-    );
+    assert(isRunAdAuctionResponse(data));
+    assert(data[0]);
+    expect(sessionStorage.getItem(nonNullish(data[1]))).toBe(renderingUrl);
   });
 });
