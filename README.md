@@ -1,14 +1,15 @@
 # FLEDGE Shim
 
-We're building a pure-JavaScript implementation of the [FLEDGE
-spec](https://github.com/WICG/turtledove/blob/master/FLEDGE.md), on top of
-existing browser APIs. The goal is to allow testing as much of FLEDGE as
+We're building a pure-JavaScript implementation of the
+[FLEDGE spec](https://github.com/WICG/turtledove/blob/master/FLEDGE.md), on top
+of existing browser APIs. The goal is to allow testing as much of FLEDGE as
 possible, in as realistic a manner as possible, given the constraint of not
 being able to add new features to the browser itself.
 
 ## Status
 
-This project is just beginning. Don't expect anything to work yet!
+This project has not yet been tested in production; use at your own risk.
+Furthermore, most of the API is not yet implemented.
 
 ## Design
 
@@ -21,13 +22,13 @@ data.
 The shim is divided into two pieces:
 
 - A _frame_ that's embedded onto the page cross-origin in an `<iframe>` tag,
-  e.g., `<iframe src="https://fledge-shim.example/v/1234">`.
+  e.g., `<iframe src="https://fledge-shim.example/0.1.html">`.
 
 - A _library_ that consumers use to communicate with the frame over
   `postMessage`.
 
-Almost all of the work happens in the frame; the library is a small adapter
-that translate the API from functions to messages.
+Almost all of the work happens in the frame; the library is a small adapter that
+translates the API from functions to messages.
 
 ## API
 
@@ -44,15 +45,14 @@ can pull from github manually.
 
 #### Initialization
 
-The library needs to know how to load the frame on the page, and this needs to
-happen before any library calls that communicate with the frame.
+The library needs to know how to load the frame on the page.
 
 ```javascript
-fledgeShim.initialize("https://fledge-polyfill.example");
+const fledgeShim = new FledgeShim("https://fledge-polyfill.example/0.1.html");
 ```
 
-The initialization call takes the origin of the frame only. Versioning
-parameters are added automatically.
+The version number of the frame must match that of the library; this is checked
+at runtime.
 
 #### Joining Interest Groups
 
@@ -88,18 +88,21 @@ All auction configuration options will be supported, but `decision_logic_url`
 #### Rendering a winning ad
 
 ```javascript
-var adFrame = document.createElement("iframe");
-// set whatever attributes you like on adFrame, and then call:
-fledgeShim.renderAd(adFrame, auctionWinnerUrl);
+const adFrame = document.createElement("iframe");
+adFrame.src = auctionWinnerUrl;
+// set whatever further attributes you like on adFrame
+document.getElementById("ad-slot-div").appendChild(adFrame);
 ```
 
-Because fencedframes don't exist yet, this will render the ad in an
-ordinary iframe. The shim will not be realistic in testing the
-security, privacy, performance, or other attributes of fencedframes,
-since it won't use them at all.
+Because fencedframes don't exist yet, this will render the ad in an ordinary
+iframe. The shim will not be realistic in testing the security, privacy,
+performance, or other attributes of fencedframes, since it won't use them at
+all.
 
-The `auctionWinnerUrl` will be an opaque `urn:uuid:` token, randomly generated
-in response to the `runAdAuction` call. It should only be redeemed from the
+The `auctionWinnerUrl` will be the same URL as the FLEDGE Shim frame, with a
+randomly generated UUID appended in the fragment. When rendered with such a
+token in its URL fragment, the FLEDGE Shim frame will create a nested iframe
+inside itself pointing at the original `rendering_url`. This only works from the
 same page that called `runAdAuction`.
 
 ### Worklets
@@ -109,10 +112,10 @@ same page that called `runAdAuction`.
 The spec allows buyers and sellers to provide custom JavaScript (`generate_bid`,
 `score_ad`) which will have access to interest group information. That access is
 compatible with the privacy model, because these worklets are heavily locked
-down, have no network access, and operate as pure functions. We are not aware
-of any secure way to execute arbitrary JavaScript while protecting information
-from exfiltration. Initially, we are planning to require buyers and sellers to
-check their logic into this repo. Later, we may be able to use Web Assembly or
+down, have no network access, and operate as pure functions. We are not aware of
+any secure way to execute arbitrary JavaScript while protecting information from
+exfiltration. Initially, we are planning to require buyers and sellers to check
+their logic into this repo. Later, we may be able to use Web Assembly or
 something custom to avoid that requirement.
 
 Users may wish to test FLEDGE in circumstances where the privacy guarantees are
@@ -136,10 +139,11 @@ minimally useful as early as possible. Our current planned stages are:
 Implement core functionality:
 
 - `joinAdInterestGroup`
+- `leaveAdInterestGroup`
 - `runAdAuction`
-- `renderAd`
 
-Bidding and auction logic will be hardcoded, something very simple.
+Bidding and auction logic will be hardcoded; currently, each ad simply has a
+static price, and the ad with the highest price wins.
 
 #### V2
 
@@ -158,10 +162,10 @@ Reporting. Respect `report_result` and `report_win`.
 ## Fidelity
 
 - Performance: While we will build the shim in a manner as performant as
-  possible, you should not generally expect the performance characteristics of the
-  shim to be realistic.
+  possible, you should not generally expect the performance characteristics of
+  the shim to be realistic.
 
 - K-Anonymity: We don't intend to implement any of the k-anonymity restrictions.
   Implementing these restrictions requires either peer-to-peer browser
-  interactions or a trusted server. We may revisit this once Chrome announces how
-  they intend to implement it.
+  interactions or a trusted server. We may revisit this once Chrome announces
+  how they intend to implement it.
