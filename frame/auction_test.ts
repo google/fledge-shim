@@ -6,6 +6,7 @@
 
 import "jasmine";
 import { clearStorageBeforeAndAfter } from "../lib/shared/testing/storage";
+import { nonNullish } from "../lib/shared/testing/types";
 import { runAdAuction } from "./auction";
 import { setInterestGroupAds } from "./database";
 
@@ -15,11 +16,11 @@ describe("runAdAuction", () => {
   it("should return the higher-priced ad from a single interest group", async () => {
     const renderingUrl = "about:blank#1";
     await setInterestGroupAds("interest group name", [
-      [renderingUrl, 0.01],
-      ["about:blank#1", 0.02],
+      ["about:blank#2", 0.01],
+      [renderingUrl, 0.02],
     ]);
     const token = await runAdAuction();
-    expect(sessionStorage.getItem(token!)).toBe(renderingUrl);
+    expect(sessionStorage.getItem(nonNullish(token))).toBe(renderingUrl);
   });
 
   it("should return the higher-priced ad across multiple interest groups", async () => {
@@ -27,7 +28,7 @@ describe("runAdAuction", () => {
     await setInterestGroupAds("interest group 1", [["about:blank#2", 0.01]]);
     await setInterestGroupAds("interest group 2", [[renderingUrl, 0.02]]);
     const token = await runAdAuction();
-    expect(sessionStorage.getItem(token!)).toBe(renderingUrl);
+    expect(sessionStorage.getItem(nonNullish(token))).toBe(renderingUrl);
   });
 
   it("should return null if there are no ads", async () => {

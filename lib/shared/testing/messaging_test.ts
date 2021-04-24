@@ -10,6 +10,7 @@ import {
   addMessagePortMatchers,
   postMessageFromIframeToSelf,
 } from "./messaging";
+import { assert } from "./types";
 
 describe("testing/messaging:", () => {
   beforeAll(addMessagePortMatchers);
@@ -54,12 +55,13 @@ describe("testing/messaging:", () => {
     it("should clean up after itself", () => {
       const iframe = document.createElement("iframe");
       document.body.appendChild(iframe);
+      assert(iframe.contentWindow !== null);
       const iframeWindowProps = Object.getOwnPropertyNames(
-        iframe.contentWindow!
+        iframe.contentWindow
       );
       postMessageFromIframeToSelf(iframe, "payload", []);
-      expect(iframe.contentDocument!.body.childNodes).toHaveSize(0);
-      expect(Object.getOwnPropertyNames(iframe.contentWindow!)).toEqual(
+      expect(iframe.contentWindow.document.body.childNodes).toHaveSize(0);
+      expect(Object.getOwnPropertyNames(iframe.contentWindow)).toEqual(
         iframeWindowProps
       );
     });

@@ -123,7 +123,7 @@ export class FledgeShim {
     const iframe = document.createElement("iframe");
     iframe.src = frameSrc;
     iframe.style.display = "none";
-    iframe.sandbox.add("allow-scripts");
+    iframe.sandbox.add("allow-same-origin", "allow-scripts");
     const portPromise = awaitConnectionFromIframe(iframe, frameUrl.origin);
     document.body.appendChild(iframe);
     this.state = { frameSrc, iframe, portPromise };
@@ -140,8 +140,8 @@ export class FledgeShim {
    * Undoes the initialization side effects of the constructor, including the
    * creation of the invisible iframe.
    *
-   * After this is called, all further calls to instance methods will throw or
-   * reject with no other effects.
+   * After this is called, all further calls to instance methods other than
+   * `isDestroyed` will throw or reject with no other effects.
    *
    * The primary purpose of this API is to facilitate hermetic testing, by
    * allowing tests to clean up after themselves after finishing. It can also be
@@ -164,6 +164,17 @@ export class FledgeShim {
       }
     );
     this.state = null;
+  }
+
+  /**
+   * Returns whether `destroy` has been called. If false, API methods can still
+   * be called.
+   *
+   * This will not exist in browser-native implementations of FLEDGE, because
+   * `destroy` won't either.
+   */
+  isDestroyed(): boolean {
+    return !this.state;
   }
 
   /**

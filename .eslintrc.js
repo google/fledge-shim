@@ -32,6 +32,7 @@ module.exports = {
       "warn",
       {
         comments: 80,
+        ignorePattern: String.raw`^\s*// eslint-disable-next-line.*`,
         ignoreUrls: true,
         ignoreStrings: true,
         ignoreTemplateLiterals: true,
@@ -77,7 +78,6 @@ module.exports = {
     {
       files: ["*_test.ts"],
       rules: {
-        "@typescript-eslint/no-non-null-assertion": "off",
         "jsdoc/require-file-overview": [
           "error",
           {

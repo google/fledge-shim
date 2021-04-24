@@ -13,12 +13,12 @@ import {
 import {
   FledgeRequest,
   RequestTag,
-  RunAdAuctionResponse,
   isRunAdAuctionResponse,
 } from "../lib/shared/protocol";
 import { VERSION, VERSION_KEY } from "../lib/shared/version";
 import { cleanDomAfterEach } from "../lib/shared/testing/dom";
 import { clearStorageBeforeAndAfter } from "../lib/shared/testing/storage";
+import { assert, nonNullish } from "../lib/shared/testing/types";
 import { main } from "./main";
 
 describe("main", () => {
@@ -31,7 +31,7 @@ describe("main", () => {
     const iframe = document.createElement("iframe");
     document.body.appendChild(iframe);
     const handshakeMessageEventPromise = awaitMessageFromSelfToSelf();
-    main(iframe.contentWindow!);
+    main(nonNullish(iframe.contentWindow));
     const { data: handshakeData, ports } = await handshakeMessageEventPromise;
     expect(handshakeData).toEqual({ [VERSION_KEY]: VERSION });
     expect(ports).toHaveSize(1);
@@ -46,9 +46,9 @@ describe("main", () => {
     const auctionRequest: FledgeRequest = [RequestTag.RUN_AD_AUCTION, null];
     port.postMessage(auctionRequest, [sender]);
     const { data: auctionResponse } = await auctionMessageEventPromise;
-    expect(isRunAdAuctionResponse(auctionResponse)).toBeTrue();
-    expect((auctionResponse as RunAdAuctionResponse)[0]).toBeTrue();
-    expect(sessionStorage.getItem((auctionResponse as [true, string])[1])).toBe(
+    assert(isRunAdAuctionResponse(auctionResponse));
+    assert(auctionResponse[0]);
+    expect(sessionStorage.getItem(nonNullish(auctionResponse[1]))).toBe(
       renderingUrl
     );
   });
@@ -59,10 +59,11 @@ describe("main", () => {
     const iframe = document.createElement("iframe");
     iframe.src = "about:blank#" + token;
     document.body.appendChild(iframe);
-    main(iframe.contentWindow!);
-    expect(iframe.contentDocument!.querySelector("iframe")!.src).toBe(
-      renderingUrl
-    );
+    assert(iframe.contentWindow !== null);
+    main(iframe.contentWindow);
+    expect(
+      nonNullish(iframe.contentWindow.document.querySelector("iframe")).src
+    ).toBe(renderingUrl);
   });
 
   it("should throw on invalid token", () => {
@@ -70,8 +71,10 @@ describe("main", () => {
     const iframe = document.createElement("iframe");
     iframe.src = "about:blank#" + token;
     document.body.appendChild(iframe);
+    const win = nonNullish(iframe.contentWindow);
+    assert(iframe.contentWindow !== null);
     expect(() => {
-      main(iframe.contentWindow!);
+      main(win);
     }).toThrowError();
   });
 

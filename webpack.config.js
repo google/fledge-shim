@@ -6,7 +6,6 @@
 
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const InlineChunkHtmlPlugin = require("react-dev-utils/InlineChunkHtmlPlugin");
-const TerserPlugin = require("terser-webpack-plugin");
 const path = require("path");
 
 module.exports = {
@@ -14,14 +13,6 @@ module.exports = {
   mode: "production",
   module: { rules: [{ test: /\.ts$/, loader: "ts-loader" }] },
   resolve: { extensions: [".ts"] },
-  optimization: {
-    minimizer: [
-      new TerserPlugin({
-        terserOptions: { format: { comments: /@license/ } },
-        extractComments: false,
-      }),
-    ],
-  },
   plugins: [
     new HtmlWebpackPlugin({
       filename: "frame.html",
