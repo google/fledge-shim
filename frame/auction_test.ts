@@ -36,4 +36,11 @@ describe("runAdAuction", () => {
     expect(token).toBeNull();
     expect(sessionStorage.length).toBe(0);
   });
+
+  it("should return tokens in the expected format", async () => {
+    await setInterestGroupAds("interest group name", [["about:blank", 0.02]]);
+    for (let i = 0; i < 100; i++) {
+      expect(await runAdAuction()).toMatch(/^[0-9a-f]{32}$/);
+    }
+  });
 });

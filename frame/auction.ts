@@ -6,7 +6,6 @@
 
 /** @fileoverview Selection of ads, and creation of tokens to display them. */
 
-import * as uuid from "uuid";
 import { getAllAds } from "./database";
 
 /**
@@ -28,7 +27,15 @@ export async function runAdAuction(): Promise<string | null> {
       winningPrice = price;
     }
   }
-  const token = uuid.v4();
+  const token = randomToken();
   sessionStorage.setItem(token, winningRenderingUrl);
   return token;
+}
+
+function randomToken() {
+  return Array.prototype.map
+    .call(crypto.getRandomValues(new Uint8Array(16)), (byte: number) =>
+      byte.toString(/* radix= */ 16).padStart(2, "0")
+    )
+    .join("");
 }

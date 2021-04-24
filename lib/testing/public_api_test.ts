@@ -5,7 +5,6 @@
  */
 
 import "jasmine";
-import * as uuid from "uuid";
 import { clearStorageBeforeAndAfter } from "../../lib/shared/testing/storage";
 import { assert } from "../../lib/shared/testing/types";
 import { FledgeShim } from "../public_api";
@@ -33,9 +32,10 @@ describe("create", () => {
 describe("renderingUrlFromAuctionResult", () => {
   clearStorageBeforeAndAfter();
 
+  const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const renderingUrl = "about:blank#ad";
+
   it("should return the rendering URL from an auction result", async () => {
-    const token = uuid.v4();
-    const renderingUrl = "about:blank#ad";
     sessionStorage.setItem(token, renderingUrl);
     expect(await renderingUrlFromAuctionResult("/frame.html#" + token)).toBe(
       renderingUrl
@@ -43,8 +43,6 @@ describe("renderingUrlFromAuctionResult", () => {
   });
 
   it("should clean up after itself", async () => {
-    const token = uuid.v4();
-    const renderingUrl = "about:blank#ad";
     sessionStorage.setItem(token, renderingUrl);
     const existingDom = document.documentElement.cloneNode(/* deep= */ true);
     assert(existingDom instanceof HTMLHtmlElement);

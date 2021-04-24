@@ -5,7 +5,6 @@
  */
 
 import "jasmine";
-import * as uuid from "uuid";
 import {
   awaitMessageFromSelfToSelf,
   awaitMessageToPort,
@@ -53,8 +52,9 @@ describe("main", () => {
     );
   });
 
+  const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
   it("should render an ad", () => {
-    const token = uuid.v4();
     sessionStorage.setItem(token, renderingUrl);
     const iframe = document.createElement("iframe");
     iframe.src = "about:blank#" + token;
@@ -67,7 +67,6 @@ describe("main", () => {
   });
 
   it("should throw on invalid token", () => {
-    const token = uuid.v4();
     const iframe = document.createElement("iframe");
     iframe.src = "about:blank#" + token;
     document.body.appendChild(iframe);
