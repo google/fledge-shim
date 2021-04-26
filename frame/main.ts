@@ -47,5 +47,10 @@ function render(doc: Document, fragment: string) {
   }
   const iframe = doc.createElement("iframe");
   iframe.src = renderingUrl;
+  iframe.scrolling = "no";
+  iframe.style.border = "none";
+  iframe.style.width = iframe.style.height = doc.body.style.height = doc.documentElement.style.height =
+    "100%";
+  doc.body.style.margin = "0";
   doc.body.appendChild(iframe);
 }

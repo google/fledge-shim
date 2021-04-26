@@ -31,11 +31,10 @@ module.exports = {
     "max-len": [
       "warn",
       {
+        code: Infinity,
         comments: 80,
         ignorePattern: String.raw`^\s*// eslint-disable-next-line.*`,
         ignoreUrls: true,
-        ignoreStrings: true,
-        ignoreTemplateLiterals: true,
       },
     ],
     "no-inner-declarations": "off",
