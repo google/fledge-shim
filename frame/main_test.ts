@@ -66,6 +66,44 @@ describe("main", () => {
     ).toBe(renderingUrl);
   });
 
+  it("should render with the exact same dimensions as the outer iframe, with no borders or scrollbars", async () => {
+    sessionStorage.setItem(token, renderingUrl);
+    const outerIframe = document.createElement("iframe");
+    outerIframe.src = "about:blank#" + token;
+    outerIframe.style.width = "123px";
+    outerIframe.style.height = "45px";
+    document.body.appendChild(outerIframe);
+    assert(outerIframe.contentWindow !== null);
+    main(outerIframe.contentWindow);
+    const innerIframe = nonNullish(
+      outerIframe.contentWindow.document.querySelector("iframe")
+    );
+    const expectedRect = {
+      left: 0,
+      x: 0,
+      top: 0,
+      y: 0,
+      right: 123,
+      width: 123,
+      bottom: 45,
+      height: 45,
+    };
+    expect(innerIframe.getBoundingClientRect().toJSON()).toEqual(expectedRect);
+    const rectsInViewport = await new Promise<IntersectionObserverEntry[]>(
+      (resolve) => {
+        new IntersectionObserver(resolve).observe(innerIframe);
+      }
+    );
+    expect(rectsInViewport).toHaveSize(1);
+    expect(rectsInViewport[0].boundingClientRect.toJSON()).toEqual(
+      expectedRect
+    );
+    expect(getComputedStyle(innerIframe).borderRadius).toEqual("0px");
+    expect(getComputedStyle(innerIframe).borderStyle).toEqual("none");
+    // There's no other way to check this as far as we know.
+    expect(innerIframe.scrolling).toEqual("no");
+  });
+
   it("should throw on invalid token", () => {
     const iframe = document.createElement("iframe");
     iframe.src = "about:blank#" + token;
