@@ -23,13 +23,14 @@ export function isObject(
 }
 
 /**
- * Returns whether the given value is a non-array object. This is intended for
+ * Returns whether the given value is a plain-old-data object (i.e., not an
+ * array or function or instance of some other type). This is intended for
  * runtime type checking of values parsed from JSON.
  */
 export function isKeyValueObject(
   value: unknown
 ): value is { readonly [key: string]: unknown } {
-  return typeof value === "object" && value !== null && !isArray(value);
+  return isObject(value) && Object.getPrototypeOf(value) === Object.prototype;
 }
 
 /**
