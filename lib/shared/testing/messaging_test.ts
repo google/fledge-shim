@@ -5,12 +5,12 @@
  */
 
 import "jasmine";
+import { assert } from "../types";
 import { cleanDomAfterEach } from "./dom";
 import {
   addMessagePortMatchers,
   postMessageFromIframeToSelf,
 } from "./messaging";
-import { assert } from "./types";
 
 describe("testing/messaging:", () => {
   beforeAll(addMessagePortMatchers);

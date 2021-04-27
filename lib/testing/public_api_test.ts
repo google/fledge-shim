@@ -5,8 +5,8 @@
  */
 
 import "jasmine";
+import { assert } from "../../lib/shared/types";
 import { clearStorageBeforeAndAfter } from "../../lib/shared/testing/storage";
-import { assert } from "../../lib/shared/testing/types";
 import { FledgeShim } from "../public_api";
 import { create, renderingUrlFromAuctionResult } from "./public_api";
 
