@@ -14,10 +14,10 @@ import {
   RequestTag,
   isRunAdAuctionResponse,
 } from "../lib/shared/protocol";
+import { assert, assertType, nonNullish } from "../lib/shared/types";
 import { VERSION, VERSION_KEY } from "../lib/shared/version";
 import { cleanDomAfterEach } from "../lib/shared/testing/dom";
 import { clearStorageBeforeAndAfter } from "../lib/shared/testing/storage";
-import { assert, nonNullish } from "../lib/shared/testing/types";
 import { main } from "./main";
 
 describe("main", () => {
@@ -45,7 +45,7 @@ describe("main", () => {
     const auctionRequest: FledgeRequest = [RequestTag.RUN_AD_AUCTION, null];
     port.postMessage(auctionRequest, [sender]);
     const { data: auctionResponse } = await auctionMessageEventPromise;
-    assert(isRunAdAuctionResponse(auctionResponse));
+    assertType(auctionResponse, isRunAdAuctionResponse);
     assert(auctionResponse[0]);
     expect(sessionStorage.getItem(nonNullish(auctionResponse[1]))).toBe(
       renderingUrl

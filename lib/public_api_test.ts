@@ -5,8 +5,8 @@
  */
 
 import "jasmine";
+import { nonNullish } from "./shared/types";
 import { clearStorageBeforeAndAfter } from "./shared/testing/storage";
-import { nonNullish } from "./shared/testing/types";
 import { create, renderingUrlFromAuctionResult } from "./testing/public_api";
 
 describe("FledgeShim", () => {

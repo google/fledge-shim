@@ -12,8 +12,8 @@ import {
   RequestTag,
   RunAdAuctionResponse,
 } from "../lib/shared/protocol";
+import { assert, assertType, nonNullish } from "../lib/shared/types";
 import { clearStorageBeforeAndAfter } from "../lib/shared/testing/storage";
-import { assert, nonNullish } from "../lib/shared/testing/types";
 import { Ad, getAllAds } from "./database";
 import { handleRequest } from "./handler";
 
@@ -99,7 +99,7 @@ describe("handleRequest", () => {
       })
     );
     const { data } = await messageEventPromise;
-    assert(isRunAdAuctionResponse(data));
+    assertType(data, isRunAdAuctionResponse);
     assert(data[0]);
     expect(sessionStorage.getItem(nonNullish(data[1]))).toBe(renderingUrl);
   });

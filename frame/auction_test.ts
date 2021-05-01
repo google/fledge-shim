@@ -5,8 +5,8 @@
  */
 
 import "jasmine";
+import { nonNullish } from "../lib/shared/types";
 import { clearStorageBeforeAndAfter } from "../lib/shared/testing/storage";
-import { nonNullish } from "../lib/shared/testing/types";
 import { runAdAuction } from "./auction";
 import { setInterestGroupAds } from "./database";
 

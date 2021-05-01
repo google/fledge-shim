@@ -10,7 +10,7 @@
  */
 
 import "jasmine";
-import { nonNullish } from "../../lib/shared/testing/types";
+import { nonNullish } from "../../lib/shared/types";
 import { FledgeShim } from "../public_api";
 
 let fledgeShims: FledgeShim[] = [];
