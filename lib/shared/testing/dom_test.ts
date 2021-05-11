@@ -12,47 +12,48 @@ const ID = "clean-dom-after-each-child";
 describe("cleanDomAfterEach", () => {
   describe("with child in head", () => {
     cleanDomAfterEach();
-    it("adds it to the DOM head", () => {
-      const child = document.createElement("style");
-      child.id = ID;
-      document.head.appendChild(child);
-      expect(document.getElementById(ID)).toBe(child);
-      expect(child.parentNode).toBe(document.head);
-    });
-    it("should have cleared it away after the preceding test case", () => {
-      expect(document.getElementById(ID)).toBeNull();
-    });
+    for (const nth of ["first", "second"]) {
+      it(`should not already be present when adding it (${nth} time)`, () => {
+        expect(document.getElementById(ID)).toBeNull();
+        const child = document.createElement("style");
+        child.id = ID;
+        document.head.appendChild(child);
+        expect(document.getElementById(ID)).toBe(child);
+        expect(child.parentNode).toBe(document.head);
+      });
+    }
   });
 
   describe("with child in body", () => {
     cleanDomAfterEach();
-    it("adds it to the DOM body", () => {
-      const child = document.createElement("div");
-      child.id = ID;
-      document.body.appendChild(child);
-      expect(document.getElementById(ID)).toBe(child);
-      expect(child.parentNode).toBe(document.body);
-    });
-    it("should have cleared it away after the preceding test case", () => {
-      expect(document.getElementById(ID)).toBeNull();
-    });
+    for (const nth of ["first", "second"]) {
+      it(`should not already be present when adding it (${nth} time)`, () => {
+        expect(document.getElementById(ID)).toBeNull();
+        const child = document.createElement("div");
+        child.id = ID;
+        document.body.appendChild(child);
+        expect(document.getElementById(ID)).toBe(child);
+        expect(child.parentNode).toBe(document.body);
+      });
+    }
   });
 
-  describe("with attribute", () => {
+  describe("with attribute on DOM root", () => {
     cleanDomAfterEach();
-    it("adds it to the DOM root", () => {
-      document.documentElement.dataset["cleanDomAfterEachAttribute"] = "value";
-      expect().nothing();
-    });
-    it("should have cleared it away after the preceding test case", () => {
-      expect("cleanDomAfterEachAttribute" in document.documentElement.dataset)
-        .withContext(
-          `Element should not have data-clean-dom-after-each-attribute=${
-            document.documentElement.dataset["cleanDomAfterEachAttribute"] ?? ""
-          }`
-        )
-        .toBeFalse();
-    });
+    for (const nth of ["first", "second"]) {
+      it(`should not already be present when adding it (${nth} time)`, () => {
+        expect("cleanDomAfterEachAttribute" in document.documentElement.dataset)
+          .withContext(
+            `Element should not have data-clean-dom-after-each-attribute=${
+              document.documentElement.dataset["cleanDomAfterEachAttribute"] ??
+              ""
+            }`
+          )
+          .toBeFalse();
+        document.documentElement.dataset["cleanDomAfterEachAttribute"] =
+          "value";
+      });
+    }
   });
 
   describe("with beforeEach", () => {

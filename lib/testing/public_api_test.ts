@@ -12,16 +12,13 @@ import { create, renderingUrlFromAuctionResult } from "./public_api";
 
 describe("create", () => {
   let fledgeShim: FledgeShim;
-  function createOrExpectDestroyed() {
-    if (fledgeShim) {
-      expect(fledgeShim.isDestroyed()).toBeTrue();
-    } else {
-      fledgeShim = create();
-      expect(fledgeShim).toBeInstanceOf(FledgeShim);
-    }
-  }
-  it("should create on the first run", createOrExpectDestroyed);
-  it("should be destroyed on the second run", createOrExpectDestroyed);
+  it("should return a FledgeShim", () => {
+    fledgeShim = create();
+    expect(fledgeShim).toBeInstanceOf(FledgeShim);
+  });
+  afterAll(() => {
+    expect(fledgeShim.isDestroyed()).toBeTrue();
+  });
 
   it("should not try to re-destroy an already destroyed FledgeShim", () => {
     create().destroy();

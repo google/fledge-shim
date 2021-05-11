@@ -11,29 +11,29 @@ import { clearStorageBeforeAndAfter } from "./storage";
 describe("clearStorageBeforeAndAfter", () => {
   describe("with sessionStorage", () => {
     clearStorageBeforeAndAfter();
-    it("stores an item", () => {
-      const key = "sessionStorage key";
-      const value = "sessionStorage value";
-      sessionStorage.setItem(key, value);
-      expect(sessionStorage.getItem(key)).toBe(value);
-    });
-    it("should have cleared it after the preceding test case", () => {
-      expect(sessionStorage.length).toBe(0);
-    });
+    for (const nth of ["first", "second"]) {
+      it(`should not already contain item when adding it (${nth} time)`, () => {
+        expect(sessionStorage.length).toBe(0);
+        const key = "sessionStorage key";
+        const value = "sessionStorage value";
+        sessionStorage.setItem(key, value);
+        expect(sessionStorage.getItem(key)).toBe(value);
+      });
+    }
   });
 
   describe("with idb-keyval", () => {
     clearStorageBeforeAndAfter();
-    it("stores an item", async () => {
-      const key = "idb-keyval key";
-      const value = "idb-keyval value";
-      await idbKeyval.set(key, value);
-      const retrieved: unknown = await idbKeyval.get(key);
-      expect(retrieved).toBe(value);
-    });
-    it("should have cleared it after the preceding test case", async () => {
-      expect(await idbKeyval.entries()).toEqual([]);
-    });
+    for (const nth of ["first", "second"]) {
+      it(`should not already contain item when adding it (${nth} time)`, async () => {
+        expect(await idbKeyval.entries()).toEqual([]);
+        const key = "idb-keyval key";
+        const value = "idb-keyval value";
+        await idbKeyval.set(key, value);
+        const retrieved: unknown = await idbKeyval.get(key);
+        expect(retrieved).toBe(value);
+      });
+    }
   });
 
   describe("with beforeEach", () => {
