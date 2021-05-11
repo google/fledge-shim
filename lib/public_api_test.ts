@@ -56,15 +56,16 @@ describe("FledgeShim", () => {
       ).toBe(renderingUrl);
     });
 
-    it("should return the higher-priced ad from a single interest group", async () => {
+    it("should return the higher-priced ad across multiple interest groups", async () => {
       const fledgeShim = create();
       const renderingUrl = "about:blank#1";
       fledgeShim.joinAdInterestGroup({
-        name,
-        ads: [
-          { rendering_url: "about:blank#2", metadata: { price: 0.01 } },
-          { rendering_url: renderingUrl, metadata: { price: 0.02 } },
-        ],
+        name: "interest group 1",
+        ads: [{ rendering_url: "about:blank#2", metadata: { price: 0.01 } }],
+      });
+      fledgeShim.joinAdInterestGroup({
+        name: "interest group 2",
+        ads: [{ rendering_url: renderingUrl, metadata: { price: 0.02 } }],
       });
       expect(
         await renderingUrlFromAuctionResult(
