@@ -25,9 +25,14 @@ module.exports = (config) => {
       },
     ],
     frameworks: ["jasmine", "karma-typescript"],
-    files: ["frame/**/*.ts", "lib/**/*.ts"],
+    files: [
+      "frame/**/*.ts",
+      "lib/**/*.ts",
+      { pattern: "fake_server.js", included: false },
+    ],
     middleware: ["webpack-dev"],
     preprocessors: { "**/*.ts": "karma-typescript" },
+    proxies: { "/fake_server.js": "/base/fake_server.js" },
     reporters: ["progress", "karma-typescript"],
     browsers: ["ChromeHeadless"],
     karmaTypescriptConfig: {
