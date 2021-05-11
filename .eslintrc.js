@@ -17,6 +17,7 @@ module.exports = {
   ignorePatterns: [
     "dist/",
     ".eslintrc.js",
+    "fake_server.js",
     "karma.conf.js",
     "webpack.config.js",
   ],
