@@ -76,16 +76,17 @@ export function isLeaveAdInterestGroupRequest(
 }
 
 /**
- * Inputs for `runAdAuction` serialized into wire format. Currently just `null`
- * because this API takes no inputs.
+ * Inputs for `runAdAuction` serialized into wire format. Currently just a type
+ * alias for string or `null` because this API doesn't take any inputs with more
+ * complicated structure.
  */
-export type RunAdAuctionRequest = null;
+export type RunAdAuctionRequest = string | null;
 
 /** Type guard for {@link RunAdAuctionRequest}. */
 export function isRunAdAuctionRequest(
   message: unknown
 ): message is RunAdAuctionRequest {
-  return message === null;
+  return typeof message === "string" || message === null;
 }
 
 /**

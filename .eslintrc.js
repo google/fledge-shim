@@ -88,6 +88,12 @@ module.exports = {
     {
       files: ["*_test.ts"],
       rules: {
+        // Same issue as with Jest
+        // (https://github.com/typescript-eslint/typescript-eslint/blob/master/packages/eslint-plugin/docs/rules/unbound-method.md),
+        // but there's currently no Jasmine equivalent of
+        // eslint-plugin-jest/unbound-method, so we have to just disable the
+        // rule entirely.
+        "@typescript-eslint/unbound-method": "off",
         // Test files require @license, but not @fileoverview.
         "jsdoc/require-file-overview": [
           "error",

@@ -8,6 +8,11 @@ import "jasmine";
 import { nonNullish } from "./shared/types";
 import { clearStorageBeforeAndAfter } from "./shared/testing/storage";
 import { create, renderingUrlFromAuctionResult } from "./testing/public_api";
+import {
+  FakeRequest,
+  FakeServerHandler,
+  setFakeServerHandler,
+} from "./shared/testing/http";
 
 describe("FledgeShim", () => {
   clearStorageBeforeAndAfter();
@@ -16,13 +21,13 @@ describe("FledgeShim", () => {
 
   describe("runAdAuction", () => {
     it("should return null if there are no interest groups", async () => {
-      expect(await create().runAdAuction()).toBeNull();
+      expect(await create().runAdAuction({})).toBeNull();
     });
 
     it("should return null if there are no ads in the interest groups", async () => {
       const fledgeShim = create();
       fledgeShim.joinAdInterestGroup({ name, ads: [] });
-      expect(await fledgeShim.runAdAuction()).toBeNull();
+      expect(await fledgeShim.runAdAuction({})).toBeNull();
     });
 
     it("should return a single ad", async () => {
@@ -34,7 +39,7 @@ describe("FledgeShim", () => {
       });
       expect(
         await renderingUrlFromAuctionResult(
-          nonNullish(await fledgeShim.runAdAuction())
+          nonNullish(await fledgeShim.runAdAuction({}))
         )
       ).toBe(renderingUrl);
     });
@@ -51,7 +56,7 @@ describe("FledgeShim", () => {
       });
       expect(
         await renderingUrlFromAuctionResult(
-          nonNullish(await fledgeShim.runAdAuction())
+          nonNullish(await fledgeShim.runAdAuction({}))
         )
       ).toBe(renderingUrl);
     });
@@ -69,10 +74,50 @@ describe("FledgeShim", () => {
       });
       expect(
         await renderingUrlFromAuctionResult(
-          nonNullish(await fledgeShim.runAdAuction())
+          nonNullish(await fledgeShim.runAdAuction({}))
         )
       ).toBe(renderingUrl);
     });
+
+    const trustedScoringSignalsUrl = "https://trusted-server.test/scoring";
+
+    it("should fetch trusted scoring signals", async () => {
+      const fledgeShim = create();
+      fledgeShim.joinAdInterestGroup({
+        name: "interest group 1",
+        ads: [{ renderingUrl: "about:blank", metadata: { price: 0.02 } }],
+      });
+      const fakeServerHandler = jasmine
+        .createSpy<FakeServerHandler>()
+        .and.resolveTo({ body: '{"a": 1, "b": [true, null]}' });
+      setFakeServerHandler(fakeServerHandler);
+      await fledgeShim.runAdAuction({ trustedScoringSignalsUrl });
+      expect(fakeServerHandler).toHaveBeenCalledOnceWith(
+        jasmine.objectContaining<FakeRequest>({
+          url: new URL(
+            `${trustedScoringSignalsUrl}?hostname=${encodeURIComponent(
+              location.hostname
+            )}&keys=about%253Ablank`
+          ),
+          method: "GET",
+          hasCredentials: false,
+        })
+      );
+    });
+
+    it("should not fetch trusted scoring signals if there are no ads", async () => {
+      const fakeServerHandler = jasmine.createSpy();
+      setFakeServerHandler(fakeServerHandler);
+      await create().runAdAuction({ trustedScoringSignalsUrl });
+      expect(fakeServerHandler).not.toHaveBeenCalled();
+    });
+
+    it("should reject on a non-HTTPS URL", () =>
+      expectAsync(
+        create().runAdAuction({
+          trustedScoringSignalsUrl: "http://insecure-server.test/scoring",
+        })
+      ).toBeRejectedWithError());
   });
 
   describe("leaveAdInterestGroup", () => {
@@ -84,7 +129,7 @@ describe("FledgeShim", () => {
         ads: [{ renderingUrl, metadata: { price: 0.02 } }],
       });
       fledgeShim.leaveAdInterestGroup({ name });
-      expect(await fledgeShim.runAdAuction()).toBeNull();
+      expect(await fledgeShim.runAdAuction({})).toBeNull();
     });
   });
 
@@ -103,7 +148,7 @@ describe("FledgeShim", () => {
       expect(() => {
         fledgeShim.leaveAdInterestGroup({ name });
       }).toThrowError();
-      await expectAsync(fledgeShim.runAdAuction()).toBeRejectedWithError();
+      await expectAsync(fledgeShim.runAdAuction({})).toBeRejectedWithError();
     });
   });
 });

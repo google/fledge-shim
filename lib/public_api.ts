@@ -76,6 +76,17 @@ export interface InterestGroup extends InterestGroupIdentity {
   ads: Ad[];
 }
 
+/** TODO */
+export interface AuctionAdConfig {
+  /**
+   * An HTTPS URL. If provided, a request to this URL is made at auction time.
+   * The response is expected to be a JSON object.
+   *
+   * @see https://github.com/WICG/turtledove/blob/main/FLEDGE.md#31-fetching-real-time-data-from-a-trusted-server
+   */
+  trustedScoringSignalsUrl?: string;
+}
+
 /**
  * A class whose instance methods correspond to the APIs exposed by FLEDGE.
  *
@@ -250,8 +261,18 @@ export class FledgeShim {
    * @see {@link Ad.metadata.price} for further behavioral notes.
    * @see https://github.com/WICG/turtledove/blob/main/FLEDGE.md#21-initiating-an-on-device-auction
    */
-  async runAdAuction(): Promise<string | null> {
+  async runAdAuction(config: AuctionAdConfig): Promise<string | null> {
     const request: FledgeRequest = [RequestTag.RUN_AD_AUCTION, null];
+    if (config.trustedScoringSignalsUrl !== undefined) {
+      const trustedScoringSignalsUrl = new URL(
+        config.trustedScoringSignalsUrl,
+        document.baseURI
+      );
+      if (trustedScoringSignalsUrl.protocol !== "https:") {
+        throw new Error("frameSrc must be a https: URL");
+      }
+      request[1] = trustedScoringSignalsUrl.href;
+    }
     const { frameSrc, portPromise } = this.getState();
     const mainPort = await portPromise;
     const { port1: receiver, port2: sender } = new MessageChannel();
