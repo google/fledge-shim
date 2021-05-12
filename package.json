@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "idb-keyval": "^5.0.4",
-    "tslib": "^2.1.0"
+    "tslib": "^2.2.0"
   },
   "devDependencies": {
     "@angular/compiler": "^11.2.7",
