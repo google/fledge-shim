@@ -16,6 +16,8 @@ module.exports = {
   ],
   ignorePatterns: [
     "dist/",
+    // This configuration is designed for TypeScript and much of it doesn't
+    // work properly with .js files.
     ".eslintrc.js",
     "fake_server.js",
     "karma.conf.js",
@@ -32,14 +34,21 @@ module.exports = {
     "max-len": [
       "warn",
       {
+        // Whatever Prettier wraps lines to is acceptable.
         code: Infinity,
+        // However, Prettier doesn't wrap comments.
         comments: 80,
         ignorePattern: String.raw`^\s*// eslint-disable-next-line.*`,
         ignoreUrls: true,
       },
     ],
+    // Per https://eslint.org/docs/rules/no-inner-declarations, this is obsolete
+    // since ES2015.
     "no-inner-declarations": "off",
+    // Superseded by jsdoc/require-jsdoc.
     "require-jsdoc": "off",
+    // Many JSDoc-related rules are superseded by TypeScript type annotation
+    // syntax.
     "valid-jsdoc": "off",
     "jsdoc/check-indentation": "warn",
     "jsdoc/check-param-names": "off",
@@ -51,6 +60,7 @@ module.exports = {
           "^\nCopyright 2021 Google LLC\nSPDX-License-Identifier: Apache-2\\.0$",
       },
     ],
+    // Non-test files require both @license and a @fileoverview.
     "jsdoc/require-file-overview": [
       "error",
       {
@@ -78,6 +88,7 @@ module.exports = {
     {
       files: ["*_test.ts"],
       rules: {
+        // Test files require @license, but not @fileoverview.
         "jsdoc/require-file-overview": [
           "error",
           {
@@ -95,6 +106,7 @@ module.exports = {
   ],
   settings: {
     jsdoc: {
+      // Google Style uses these tag names.
       tagNamePreference: { file: "fileoverview", returns: "return" },
     },
   },
