@@ -79,7 +79,7 @@ export function postMessageFromIframeToSelf(
   iframeDoc.body.appendChild(script);
   try {
     script.remove();
-    ((iframeWin as unknown) as WithPostMessageTo).postMessageTo(
+    (iframeWin as unknown as WithPostMessageTo).postMessageTo(
       window,
       message,
       origin,
