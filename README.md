@@ -102,7 +102,7 @@ all.
 The `auctionWinnerUrl` will be the same URL as the FLEDGE Shim frame, with a
 randomly generated token appended in the fragment. When rendered with such a
 token in its URL fragment, the FLEDGE Shim frame will create a nested iframe
-inside itself pointing at the original `rendering_url`. This only works from the
+inside itself pointing at the original `renderingUrl`. This only works from the
 same page that called `runAdAuction`.
 
 ### Worklets

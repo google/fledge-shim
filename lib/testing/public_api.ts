@@ -35,7 +35,7 @@ afterEach(() => {
 });
 
 /**
- * Given a string returned from `runAdAuction`, returns the `rendering_url` of
+ * Given a string returned from `runAdAuction`, returns the `renderingUrl` of
  * the winning ad. Note that this is only possible because the frame served by
  * Karma is same-origin to the page where the tests run; browser-native
  * implementations will not allow this, nor is it possible in production with
