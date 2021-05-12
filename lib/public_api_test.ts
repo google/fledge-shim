@@ -30,7 +30,7 @@ describe("FledgeShim", () => {
       const renderingUrl = "about:blank";
       fledgeShim.joinAdInterestGroup({
         name,
-        ads: [{ rendering_url: renderingUrl, metadata: { price: 0.02 } }],
+        ads: [{ renderingUrl, metadata: { price: 0.02 } }],
       });
       expect(
         await renderingUrlFromAuctionResult(
@@ -45,8 +45,8 @@ describe("FledgeShim", () => {
       fledgeShim.joinAdInterestGroup({
         name,
         ads: [
-          { rendering_url: "about:blank#2", metadata: { price: 0.01 } },
-          { rendering_url: renderingUrl, metadata: { price: 0.02 } },
+          { renderingUrl: "about:blank#2", metadata: { price: 0.01 } },
+          { renderingUrl, metadata: { price: 0.02 } },
         ],
       });
       expect(
@@ -61,11 +61,11 @@ describe("FledgeShim", () => {
       const renderingUrl = "about:blank#1";
       fledgeShim.joinAdInterestGroup({
         name: "interest group 1",
-        ads: [{ rendering_url: "about:blank#2", metadata: { price: 0.01 } }],
+        ads: [{ renderingUrl: "about:blank#2", metadata: { price: 0.01 } }],
       });
       fledgeShim.joinAdInterestGroup({
         name: "interest group 2",
-        ads: [{ rendering_url: renderingUrl, metadata: { price: 0.02 } }],
+        ads: [{ renderingUrl, metadata: { price: 0.02 } }],
       });
       expect(
         await renderingUrlFromAuctionResult(
@@ -81,7 +81,7 @@ describe("FledgeShim", () => {
       const renderingUrl = "about:blank";
       fledgeShim.joinAdInterestGroup({
         name,
-        ads: [{ rendering_url: renderingUrl, metadata: { price: 0.02 } }],
+        ads: [{ renderingUrl, metadata: { price: 0.02 } }],
       });
       fledgeShim.leaveAdInterestGroup({ name });
       expect(await fledgeShim.runAdAuction()).toBeNull();

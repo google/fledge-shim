@@ -19,9 +19,6 @@ import {
 
 export { VERSION } from "./shared/version";
 
-// The FLEDGE spec uses snake_case property names.
-/* eslint-disable camelcase */
-
 /**
  * An ad creative that can participate in an auction and later be rendered onto
  * the page if it wins.
@@ -35,7 +32,7 @@ export interface Ad {
    * The URL where the actual creative is hosted. This will be used as the `src`
    * of an iframe that will appear on the page if this ad wins.
    */
-  rendering_url: string;
+  renderingUrl: string;
   /** Additional metadata about this ad that can be read by the auction. */
   metadata: {
     /**
@@ -78,8 +75,6 @@ export interface InterestGroup extends InterestGroupIdentity {
    */
   ads: Ad[];
 }
-
-/* eslint-enable camelcase */
 
 /**
  * A class whose instance methods correspond to the APIs exposed by FLEDGE.
@@ -190,10 +185,7 @@ export class FledgeShim {
   joinAdInterestGroup(group: InterestGroup): void {
     const request: FledgeRequest = [
       RequestTag.JOIN_AD_INTEREST_GROUP,
-      [
-        group.name,
-        group.ads.map((ad) => [ad.rendering_url, ad.metadata.price]),
-      ],
+      [group.name, group.ads.map((ad) => [ad.renderingUrl, ad.metadata.price])],
     ];
     void this.getState().portPromise.then(
       (port) => {
