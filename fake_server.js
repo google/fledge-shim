@@ -33,18 +33,28 @@ onmessage = (messageEvent) => {
   port.postMessage(null);
 };
 
-onfetch = (fetchEvent) => {
-  if (!new URL(fetchEvent.request.url).hostname.endsWith(".test")) {
+onfetch = async (fetchEvent) => {
+  const { url, method, headers, credentials } = fetchEvent.request;
+  if (!new URL(url).hostname.endsWith(".test")) {
     return;
   }
   const { port1: receiver, port2: sender } = new MessageChannel();
   fetchEvent.respondWith(
     new Promise((resolve) => {
-      receiver.onmessage = ({ data }) => {
+      receiver.onmessage = ({ data: [status, statusText, headers, body] }) => {
         receiver.close();
-        resolve(new Response(data));
+        resolve(new Response(body, { status, statusText, headers }));
       };
     })
   );
-  port.postMessage(fetchEvent.request.url, [sender]);
+  port.postMessage(
+    [
+      url,
+      method,
+      [...headers.entries()],
+      await fetchEvent.request.arrayBuffer(),
+      credentials === "include",
+    ],
+    [sender]
+  );
 };
