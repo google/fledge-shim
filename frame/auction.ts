@@ -75,6 +75,11 @@ async function fetchAndValidateTrustedScoringSignals(
     [...renderingUrls].map(encodeURIComponent).join(",")
   );
   const response = await tryFetchJson(url.href);
+  function logError(errorMessage: string) {
+    console.error(
+      `[FLEDGE Shim] Cannot use trusted scoring signals from ${url.href}: ${errorMessage}`
+    );
+  }
   switch (response.status) {
     case FetchJsonStatus.OK: {
       const signals = response.value;
@@ -86,16 +91,10 @@ async function fetchAndValidateTrustedScoringSignals(
     case FetchJsonStatus.NETWORK_ERROR:
       // Browser will have logged the error; no need to log it again.
       return;
-    case FetchJsonStatus.JSON_PARSE_ERROR:
+    case FetchJsonStatus.VALIDATION_ERROR:
       logError(response.errorMessage);
       return;
   }
-}
-
-function logError(errorMessage: string) {
-  console.error(
-    "[FLEDGE Shim] Invalid trusted scoring signals: " + errorMessage
-  );
 }
 
 function jsonTypeOf(value: unknown) {

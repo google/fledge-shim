@@ -5,13 +5,7 @@
  */
 
 import "jasmine";
-import {
-  DEFAULT_REQUEST_HEADERS,
-  DEFAULT_RESPONSE_HEADERS,
-  FakeRequest,
-  FakeServerHandler,
-  setFakeServerHandler,
-} from "./http";
+import { FakeRequest, FakeServerHandler, setFakeServerHandler } from "./http";
 
 describe("setFakeServerHandler", () => {
   const url = "https://domain.test/path?key=value";
@@ -42,21 +36,19 @@ describe("setFakeServerHandler", () => {
     expect(response.ok).toBeTrue();
     expect(response.status).toBe(status);
     expect(response.statusText).toBe(statusText);
-    expect(Object.fromEntries(response.headers.entries())).toEqual({
-      ...DEFAULT_RESPONSE_HEADERS,
-      ...responseHeaders,
-    });
+    expect(Object.fromEntries(response.headers.entries())).toEqual(
+      responseHeaders
+    );
     expect(await response.text()).toBe(responseBody);
-    expect(fakeServerHandler).toHaveBeenCalledOnceWith({
-      url: new URL(url),
-      method,
-      headers: {
-        ...DEFAULT_REQUEST_HEADERS,
-        ...requestHeaders,
-      },
-      body: requestBody,
-      hasCredentials: true,
-    });
+    expect(fakeServerHandler).toHaveBeenCalledOnceWith(
+      jasmine.objectContaining<FakeRequest>({
+        url: new URL(url),
+        method,
+        headers: jasmine.objectContaining(requestHeaders),
+        body: requestBody,
+        hasCredentials: true,
+      })
+    );
   });
 
   it("should respond with a default empty response if not called", async () => {
@@ -84,10 +76,7 @@ describe("setFakeServerHandler", () => {
     });
     expect(fakeServerHandler).toHaveBeenCalledOnceWith(
       jasmine.objectContaining<FakeRequest>({
-        headers: {
-          ...DEFAULT_REQUEST_HEADERS,
-          "a-request-header": headerValue,
-        },
+        headers: jasmine.objectContaining({ "a-request-header": headerValue }),
       })
     );
   });

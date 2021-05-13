@@ -76,7 +76,13 @@ describe("runAdAuction", () => {
     ]);
     const fakeServerHandler = jasmine
       .createSpy<FakeServerHandler>()
-      .and.resolveTo({ body: '{"a": 1, "b": [true, null]}' });
+      .and.resolveTo({
+        headers: {
+          "Content-Type": "application/json",
+          "X-Allow-FLEDGE": "true",
+        },
+        body: '{"a": 1, "b": [true, null]}',
+      });
     setFakeServerHandler(fakeServerHandler);
     await runAdAuction(trustedScoringSignalsUrl, hostname);
     expect(fakeServerHandler).toHaveBeenCalledOnceWith(
@@ -96,6 +102,8 @@ describe("runAdAuction", () => {
             ],
           ]),
         }),
+        headers: jasmine.objectContaining({ "accept": "application/json" }),
+        hasCredentials: false,
       })
     );
   });
@@ -107,7 +115,13 @@ describe("runAdAuction", () => {
     ]);
     const fakeServerHandler = jasmine
       .createSpy<FakeServerHandler>()
-      .and.resolveTo({ body: '{"a": 1, "b": [true, null]}' });
+      .and.resolveTo({
+        headers: {
+          "Content-Type": "application/json",
+          "X-Allow-FLEDGE": "true",
+        },
+        body: '{"a": 1, "b": [true, null]}',
+      });
     setFakeServerHandler(fakeServerHandler);
     await runAdAuction(trustedScoringSignalsUrl, hostname);
     expect(fakeServerHandler).toHaveBeenCalledOnceWith(
@@ -127,6 +141,8 @@ describe("runAdAuction", () => {
             ],
           ]),
         }),
+        headers: jasmine.objectContaining({ "accept": "application/json" }),
+        hasCredentials: false,
       })
     );
   });
@@ -154,9 +170,20 @@ describe("runAdAuction", () => {
       [renderingUrl1, 0.01],
       [renderingUrl2, 0.02],
     ]);
-    setFakeServerHandler(() => Promise.resolve({ body: '{"a": 1?}' }));
+    setFakeServerHandler(() =>
+      Promise.resolve({
+        headers: {
+          "Content-Type": "application/json",
+          "X-Allow-FLEDGE": "true",
+        },
+        body: '{"a": 1?}',
+      })
+    );
     const consoleSpy = spyOnAllFunctions(console);
     await runAdAuction(trustedScoringSignalsUrl, hostname);
+    expect(consoleSpy.error).toHaveBeenCalledOnceWith(
+      jasmine.stringMatching(/.*https:\/\/trusted-server\.test\/scoring.*/)
+    );
     expect(consoleSpy.error).toHaveBeenCalledOnceWith(
       // Illegal character is at position 7 in the string
       jasmine.stringMatching(/.*\b7\b.*/)
@@ -168,9 +195,20 @@ describe("runAdAuction", () => {
       [renderingUrl1, 0.01],
       [renderingUrl2, 0.02],
     ]);
-    setFakeServerHandler(() => Promise.resolve({ body: "3" }));
+    setFakeServerHandler(() =>
+      Promise.resolve({
+        headers: {
+          "Content-Type": "application/json",
+          "X-Allow-FLEDGE": "true",
+        },
+        body: "3",
+      })
+    );
     const consoleSpy = spyOnAllFunctions(console);
     await runAdAuction(trustedScoringSignalsUrl, hostname);
+    expect(consoleSpy.error).toHaveBeenCalledOnceWith(
+      jasmine.stringMatching(/.*https:\/\/trusted-server\.test\/scoring.*/)
+    );
     expect(consoleSpy.error).toHaveBeenCalledOnceWith(
       jasmine.stringMatching(/.*\bnumber\b.*/)
     );
@@ -192,7 +230,13 @@ describe("runAdAuction", () => {
       [renderingUrl2, 0.02],
     ]);
     setFakeServerHandler(() =>
-      Promise.resolve({ body: '{"a": 1, "b": [true, null]}' })
+      Promise.resolve({
+        headers: {
+          "Content-Type": "application/json",
+          "X-Allow-FLEDGE": "true",
+        },
+        body: '{"a": 1, "b": [true, null]}',
+      })
     );
     const consoleSpy = spyOnAllFunctions(console);
     await runAdAuction(trustedScoringSignalsUrl, hostname);

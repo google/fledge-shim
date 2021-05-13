@@ -99,12 +99,19 @@ describe("handleRequest", () => {
   });
 
   it("should run an ad auction", async () => {
+    const consoleSpy = spyOnAllFunctions(console);
     await handleRequest(joinMessageEvent, hostname);
     const { port1: receiver, port2: sender } = new MessageChannel();
     const messageEventPromise = awaitMessageToPort(receiver);
     const fakeServerHandler = jasmine
       .createSpy<FakeServerHandler>()
-      .and.resolveTo({ body: '{"a": 1, "b": [true, null]}' });
+      .and.resolveTo({
+        headers: {
+          "Content-Type": "application/json",
+          "X-Allow-FLEDGE": "true",
+        },
+        body: '{"a": 1, "b": [true, null]}',
+      });
     setFakeServerHandler(fakeServerHandler);
     const trustedScoringSignalsUrl = "https://trusted-server.test/scoring";
     const auctionRequest: FledgeRequest = [
@@ -132,5 +139,6 @@ describe("handleRequest", () => {
         hasCredentials: false,
       })
     );
+    expect(consoleSpy.error).not.toHaveBeenCalled();
   });
 });

@@ -80,19 +80,6 @@ export interface FakeResponse {
   readonly body?: string | Readonly<BufferSource>;
 }
 
-/** Headers that the browser automatically adds to requests. */
-export const DEFAULT_REQUEST_HEADERS: { readonly [name: string]: string } = {
-  "accept": "*/*",
-  "sec-ch-ua": "",
-  "sec-ch-ua-mobile": "?0",
-  "user-agent": navigator.userAgent,
-};
-
-/** Headers that the browser may automatically add to responses. */
-export const DEFAULT_RESPONSE_HEADERS: { readonly [name: string]: string } = {
-  "content-type": "text/plain;charset=UTF-8",
-};
-
 /** A callback that consumes an HTTP request and returns a response. */
 export type FakeServerHandler = (request: FakeRequest) => Promise<FakeResponse>;
 
