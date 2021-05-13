@@ -26,11 +26,14 @@ import { setInterestGroupAds, deleteInterestGroup } from "./database";
  *
  * If an error occurs, a message is sent to each provided port so that the
  * caller doesn't hang.
+ *
+ * @param hostname The hostname of the page where the FLEDGE Shim API is
+ * running.
  */
-export async function handleRequest({
-  data,
-  ports,
-}: MessageEvent<unknown>): Promise<void> {
+export async function handleRequest(
+  { data, ports }: MessageEvent<unknown>,
+  hostname: string
+): Promise<void> {
   try {
     function checkData(condition: boolean): asserts condition {
       if (!condition) {
@@ -61,7 +64,7 @@ export async function handleRequest({
           );
         }
         const [port] = ports;
-        const token = await runAdAuction();
+        const token = await runAdAuction(request, hostname);
         const response: RunAdAuctionResponse = [true, token];
         port.postMessage(response);
         port.close();

@@ -35,7 +35,10 @@ export function main(win: Window): void {
 
 function connect(targetWindow: Window, targetOrigin: string) {
   const { port1: receiver, port2: sender } = new MessageChannel();
-  receiver.onmessage = handleRequest;
+  const { hostname } = new URL(targetOrigin);
+  receiver.onmessage = (event: MessageEvent<unknown>) => {
+    void handleRequest(event, hostname);
+  };
   targetWindow.postMessage({ [VERSION_KEY]: VERSION }, targetOrigin, [sender]);
 }
 

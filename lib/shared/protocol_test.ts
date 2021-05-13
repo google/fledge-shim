@@ -67,8 +67,8 @@ for (const { name, guard, trueExamples, falseExamples } of [
   {
     name: "isRunAdAuctionRequest",
     guard: isRunAdAuctionRequest,
-    trueExamples: [null],
-    falseExamples: [3, "bad"],
+    trueExamples: [null, "https://trusted-server.example/endpoint"],
+    falseExamples: [3, true],
   },
   {
     name: "isRunAdAuctionResponse",
