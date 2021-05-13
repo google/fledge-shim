@@ -4,7 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/** @fileoverview Utilities for making HTTP requests to the network. */
+/**
+ * @fileoverview Utilities for making HTTP requests to the network.
+ *
+ * These APIs generally aim to match the behavior of
+ * https://source.chromium.org/chromium/chromium/src/+/main:content/services/auction_worklet/auction_downloader.cc
+ * (the relevant part of Chrome's implementation of FLEDGE).
+ */
 
 import { assertInstance } from "../lib/shared/types";
 
@@ -26,9 +32,11 @@ export enum FetchJsonStatus {
    */
   NETWORK_ERROR,
   /**
-   * An HTTP response was received but its body wasn't syntactically valid JSON.
+   * An HTTP response was received and exposed to the script, but didn't conform
+   * to all the preconditions (some of which aren't currently in the spec but
+   * are enforced by Chrome's implementation).
    */
-  JSON_PARSE_ERROR,
+  VALIDATION_ERROR,
 }
 
 /** The result of trying to fetch JSON over HTTP. */
@@ -40,11 +48,8 @@ export type FetchJsonResult =
     }
   | { status: FetchJsonStatus.NETWORK_ERROR }
   | {
-      status: FetchJsonStatus.JSON_PARSE_ERROR;
-      /**
-       * The JSON parse error message, which may contain information about,
-       * e.g., where the illegal character occurred.
-       */
+      status: FetchJsonStatus.VALIDATION_ERROR;
+      /** A human-readable explanation of which precondition wasn't met. */
       errorMessage: string;
     };
 
@@ -53,11 +58,42 @@ export type FetchJsonResult =
  * and returns the parsed response.
  */
 export async function tryFetchJson(url: string): Promise<FetchJsonResult> {
+  const requestHeaders = new Headers({ "Accept": "application/json" });
   let response;
   try {
-    response = await fetch(url);
+    response = await fetch(url, {
+      headers: requestHeaders,
+      credentials: "omit",
+      redirect: "error",
+    });
   } catch {
     return { status: FetchJsonStatus.NETWORK_ERROR };
+  }
+  const contentType = response.headers.get("Content-Type");
+  if (contentType === null) {
+    return {
+      status: FetchJsonStatus.VALIDATION_ERROR,
+      errorMessage: "Expected JSON MIME type but received none",
+    };
+  }
+  if (!/^(application\/([^;]*\+)?|text\/)json(;.*)?$/i.test(contentType)) {
+    return {
+      status: FetchJsonStatus.VALIDATION_ERROR,
+      errorMessage: `Expected JSON MIME type but received "${contentType}"`,
+    };
+  }
+  const xAllowFledge = response.headers.get("X-Allow-FLEDGE");
+  if (xAllowFledge === null) {
+    return {
+      status: FetchJsonStatus.VALIDATION_ERROR,
+      errorMessage: "Expected header X-Allow-FLEDGE: true but received none",
+    };
+  }
+  if (!/^true$/i.test(xAllowFledge)) {
+    return {
+      status: FetchJsonStatus.VALIDATION_ERROR,
+      errorMessage: `Expected header X-Allow-FLEDGE: true but received "${xAllowFledge}"`,
+    };
   }
   let value: unknown;
   try {
@@ -65,7 +101,7 @@ export async function tryFetchJson(url: string): Promise<FetchJsonResult> {
   } catch (error: unknown) {
     assertInstance(error, SyntaxError);
     return {
-      status: FetchJsonStatus.JSON_PARSE_ERROR,
+      status: FetchJsonStatus.VALIDATION_ERROR,
       errorMessage: error.message,
     };
   }

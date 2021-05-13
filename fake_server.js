@@ -43,7 +43,15 @@ onfetch = async (fetchEvent) => {
     new Promise((resolve) => {
       receiver.onmessage = ({ data: [status, statusText, headers, body] }) => {
         receiver.close();
-        resolve(new Response(body, { status, statusText, headers }));
+        const response = new Response(body, { status, statusText });
+        // The browser adds this by default when constructing a response with a
+        // body, but we want there to be no Content-Type header at all if one
+        // wasn't explicitly added, since this is how real servers are treated.
+        response.headers.delete("Content-Type");
+        for (const [name, value] of Object.entries(headers ?? {})) {
+          response.headers.append(name, value);
+        }
+        resolve(response);
       };
     })
   );
