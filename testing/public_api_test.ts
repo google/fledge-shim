@@ -5,10 +5,10 @@
  */
 
 import "jasmine";
-import { assert } from "../../lib/shared/types";
-import { clearStorageBeforeAndAfter } from "../../lib/shared/testing/storage";
-import { FledgeShim } from "../public_api";
+import { FledgeShim } from "../lib/public_api";
+import { assert } from "../lib/shared/types";
 import { create, renderingUrlFromAuctionResult } from "./public_api";
+import { clearStorageBeforeAndAfter } from "./storage";
 
 describe("create", () => {
   let fledgeShim: FledgeShim;

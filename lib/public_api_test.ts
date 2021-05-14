@@ -5,14 +5,14 @@
  */
 
 import "jasmine";
-import { nonNullish } from "./shared/types";
-import { clearStorageBeforeAndAfter } from "./shared/testing/storage";
-import { create, renderingUrlFromAuctionResult } from "./testing/public_api";
 import {
   FakeRequest,
   FakeServerHandler,
   setFakeServerHandler,
-} from "./shared/testing/http";
+} from "../testing/http";
+import { create, renderingUrlFromAuctionResult } from "../testing/public_api";
+import { clearStorageBeforeAndAfter } from "../testing/storage";
+import { nonNullish } from "./shared/types";
 
 describe("FledgeShim", () => {
   clearStorageBeforeAndAfter();

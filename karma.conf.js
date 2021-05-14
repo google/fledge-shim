@@ -28,6 +28,7 @@ module.exports = (config) => {
     files: [
       "frame/**/*.ts",
       "lib/**/*.ts",
+      "testing/**/*.ts",
       { pattern: "fake_server.js", included: false },
     ],
     middleware: ["webpack-dev"],

@@ -13,11 +13,8 @@ import {
   RunAdAuctionResponse,
 } from "../lib/shared/protocol";
 import { assert, assertType, nonNullish } from "../lib/shared/types";
-import {
-  FakeServerHandler,
-  setFakeServerHandler,
-} from "../lib/shared/testing/http";
-import { clearStorageBeforeAndAfter } from "../lib/shared/testing/storage";
+import { FakeServerHandler, setFakeServerHandler } from "../testing/http";
+import { clearStorageBeforeAndAfter } from "../testing/storage";
 import { Ad, getAllAds } from "./database";
 import { handleRequest } from "./handler";
 

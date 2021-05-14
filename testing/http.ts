@@ -22,8 +22,8 @@
  */
 
 import "jasmine";
-import { awaitMessageToPort } from "../messaging";
-import { assert, isArray, nonNullish } from "../types";
+import { awaitMessageToPort } from "../lib/shared/messaging";
+import { assert, isArray, nonNullish } from "../lib/shared/types";
 
 /**
  * The parts of an HTTP fetch request that this library simulates. This is
