@@ -10,12 +10,12 @@ import {
   FakeRequest,
   FakeServerHandler,
   setFakeServerHandler,
-} from "../lib/shared/testing/http";
-import { clearStorageBeforeAndAfter } from "../lib/shared/testing/storage";
+} from "../testing/http";
+import { clearStorageBeforeAndAfter } from "../testing/storage";
 import {
   joinedEncodedStringsMatching,
   queryParamsMatching,
-} from "../lib/shared/testing/url";
+} from "../testing/url";
 import { runAdAuction } from "./auction";
 import { setInterestGroupAds } from "./database";
 

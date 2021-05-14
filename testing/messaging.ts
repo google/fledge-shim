@@ -10,7 +10,7 @@
  */
 
 import "jasmine";
-import { awaitMessageToPort } from "../messaging";
+import { awaitMessageToPort } from "../lib/shared/messaging";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace

@@ -5,13 +5,13 @@
  */
 
 import "jasmine";
-import { awaitConnectionFromIframe } from "./connection";
-import { VERSION, VERSION_KEY } from "./shared/version";
-import { cleanDomAfterEach } from "./shared/testing/dom";
+import { cleanDomAfterEach } from "../testing/dom";
 import {
   addMessagePortMatchers,
   postMessageFromIframeToSelf,
-} from "./shared/testing/messaging";
+} from "../testing/messaging";
+import { awaitConnectionFromIframe } from "./connection";
+import { VERSION, VERSION_KEY } from "./shared/version";
 
 describe("awaitConnectionFromIframe", () => {
   cleanDomAfterEach();

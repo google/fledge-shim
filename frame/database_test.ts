@@ -6,7 +6,7 @@
 
 import "jasmine";
 import * as idbKeyval from "idb-keyval";
-import { clearStorageBeforeAndAfter } from "../lib/shared/testing/storage";
+import { clearStorageBeforeAndAfter } from "../testing/storage";
 import {
   Ad,
   deleteInterestGroup,

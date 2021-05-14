@@ -9,7 +9,7 @@ import {
   FakeRequest,
   FakeServerHandler,
   setFakeServerHandler,
-} from "../lib/shared/testing/http";
+} from "../testing/http";
 import { FetchJsonStatus, tryFetchJson } from "./fetch";
 
 describe("tryFetchJson", () => {

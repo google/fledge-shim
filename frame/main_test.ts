@@ -16,8 +16,8 @@ import {
 } from "../lib/shared/protocol";
 import { assert, assertType, nonNullish } from "../lib/shared/types";
 import { VERSION, VERSION_KEY } from "../lib/shared/version";
-import { cleanDomAfterEach } from "../lib/shared/testing/dom";
-import { clearStorageBeforeAndAfter } from "../lib/shared/testing/storage";
+import { cleanDomAfterEach } from "../testing/dom";
+import { clearStorageBeforeAndAfter } from "../testing/storage";
 import { main } from "./main";
 
 describe("main", () => {

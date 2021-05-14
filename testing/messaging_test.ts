@@ -5,7 +5,7 @@
  */
 
 import "jasmine";
-import { assert } from "../types";
+import { assert } from "../lib/shared/types";
 import { cleanDomAfterEach } from "./dom";
 import {
   addMessagePortMatchers,

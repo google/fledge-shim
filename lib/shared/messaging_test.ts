@@ -5,16 +5,16 @@
  */
 
 import "jasmine";
+import { cleanDomAfterEach } from "../../testing/dom";
+import {
+  addMessagePortMatchers,
+  postMessageFromIframeToSelf,
+} from "../../testing/messaging";
 import {
   awaitMessageFromIframeToSelf,
   awaitMessageFromSelfToSelf,
   awaitMessageToPort,
 } from "./messaging";
-import { cleanDomAfterEach } from "./testing/dom";
-import {
-  addMessagePortMatchers,
-  postMessageFromIframeToSelf,
-} from "./testing/messaging";
 
 describe("messaging:", () => {
   beforeAll(addMessagePortMatchers);
