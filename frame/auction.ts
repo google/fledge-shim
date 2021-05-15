@@ -20,7 +20,12 @@ import { FetchJsonStatus, tryFetchJson } from "./fetch";
  * validates that it is a JSON object. For now, the data is simply thrown away
  * after that initial validation, because the simple scoring algorithm currently
  * used has no use for scoring signals, but when more algorithms are supported,
- * this data will be passed to them.
+ * this data will be passed to them. No request is made if no ads are available.
+ *
+ * Two query parameters are appended to `trustedScoringSignalsUrl`: `hostname`,
+ * set to the value of `hostname`, and `keys`, set to the rendering URLs of all
+ * available ads, joined with a `,` separator, with an additional layer of
+ * escaping on each URL.
  *
  * @param hostname The hostname of the page where the FLEDGE Shim API is
  * running.
