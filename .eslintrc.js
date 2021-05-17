@@ -83,6 +83,11 @@ module.exports = {
     "jsdoc/require-param-type": "off",
     "jsdoc/require-returns": "off",
     "jsdoc/require-returns-type": "off",
+    // @fileoverview tags should be allowed to have multiple paragraphs, but
+    // there's currently no way to specify this, so we just have to disable the
+    // rule entirely. It can be reenabled after a release goes out containing
+    // https://github.com/gajus/eslint-plugin-jsdoc/pull/741.
+    "jsdoc/tag-lines": "off",
   },
   overrides: [
     {
