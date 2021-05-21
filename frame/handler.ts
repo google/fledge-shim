@@ -18,7 +18,7 @@ import {
 } from "../lib/shared/protocol";
 import { isArray } from "../lib/shared/types";
 import { runAdAuction } from "./auction";
-import { setInterestGroupAds, deleteInterestGroup } from "./database";
+import { setInterestGroupAds, deleteInterestGroup } from "./db_schema";
 
 /**
  * Handles a `MessageEvent` representing a request to the FLEDGE API, and sends

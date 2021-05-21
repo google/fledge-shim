@@ -5,7 +5,7 @@
  */
 
 import "jasmine";
-import * as idbKeyval from "idb-keyval";
+import { useStore } from "../frame/indexeddb";
 import { clearStorageBeforeAndAfter } from "./storage";
 
 describe("clearStorageBeforeAndAfter", () => {
@@ -22,15 +22,25 @@ describe("clearStorageBeforeAndAfter", () => {
     }
   });
 
-  describe("with idb-keyval", () => {
+  describe("with IndexedDB", () => {
     clearStorageBeforeAndAfter();
     for (const nth of ["first", "second"]) {
       it(`should not already contain item when adding it (${nth} time)`, async () => {
-        expect(await idbKeyval.entries()).toEqual([]);
-        const key = "idb-keyval key";
-        const value = "idb-keyval value";
-        await idbKeyval.set(key, value);
-        const retrieved: unknown = await idbKeyval.get(key);
+        const value = "IndexedDB value";
+        let retrieved: unknown;
+        await useStore("readwrite", (store) => {
+          const countRequest = store.count();
+          countRequest.onsuccess = () => {
+            expect(countRequest.result).toBe(0);
+            const key = "IndexedDB key";
+            store.add(value, key).onsuccess = () => {
+              const retrievalRequest = store.get(key);
+              retrievalRequest.onsuccess = () => {
+                retrieved = retrievalRequest.result;
+              };
+            };
+          };
+        });
         expect(retrieved).toBe(value);
       });
     }

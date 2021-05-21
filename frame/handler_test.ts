@@ -15,7 +15,7 @@ import {
 import { assert, assertType, nonNullish } from "../lib/shared/types";
 import { FakeServerHandler, setFakeServerHandler } from "../testing/http";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
-import { Ad, getAllAds } from "./database";
+import { Ad, getAllAds } from "./db_schema";
 import { handleRequest } from "./handler";
 
 describe("handleRequest", () => {

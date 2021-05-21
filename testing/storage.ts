@@ -10,10 +10,10 @@
  */
 
 import "jasmine";
-import * as idbKeyval from "idb-keyval";
+import { useStore } from "../frame/indexeddb";
 
 /**
- * Completely empties everything out of idb-keyval and `sessionStorage` before
+ * Completely empties everything out of IndexedDB and `sessionStorage` before
  * each test in the current suite, and again after the suite to prevent leakage.
  */
 export function clearStorageBeforeAndAfter(): void {
@@ -23,5 +23,7 @@ export function clearStorageBeforeAndAfter(): void {
 
 async function clearStorage() {
   sessionStorage.clear();
-  await idbKeyval.clear();
+  await useStore("readwrite", (store) => {
+    store.clear();
+  });
 }

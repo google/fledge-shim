@@ -17,7 +17,7 @@ import {
   queryParamsMatching,
 } from "../testing/url";
 import { runAdAuction } from "./auction";
-import { setInterestGroupAds } from "./database";
+import { setInterestGroupAds } from "./db_schema";
 
 describe("runAdAuction", () => {
   clearStorageBeforeAndAfter();
