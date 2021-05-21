@@ -42,6 +42,16 @@ export function isArray(value: unknown): value is readonly unknown[] {
 }
 
 /**
+ * Returns an error appropriate for when an assertion fails.
+ *
+ * Due to the generic error message, this should be used only in test code or
+ * when it is believed (but not proven) impossible for the check to fail.
+ */
+export function assertionError(): TypeError {
+  return new TypeError("Assertion failure");
+}
+
+/**
  * Throws if the given condition is false.
  *
  * Due to the generic error message, this should be used only in test code or
@@ -49,7 +59,7 @@ export function isArray(value: unknown): value is readonly unknown[] {
  */
 export function assert(condition: boolean): asserts condition {
   if (!condition) {
-    throw new TypeError("Assertion failure");
+    throw assertionError();
   }
 }
 

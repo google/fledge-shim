@@ -8,6 +8,7 @@ import "jasmine";
 import {
   assert,
   assertInstance,
+  assertionError,
   assertType,
   isArray,
   isKeyValueObject,
@@ -63,6 +64,14 @@ describe("isArray", () => {
   });
   it("should return false for {}}", () => {
     expect(isArray({})).toBeFalse();
+  });
+});
+
+describe("assertionError", () => {
+  it("should return a different error on each call", () => {
+    const error1 = assertionError();
+    const error2 = assertionError();
+    expect(error1.stack).not.toBe(error2.stack);
   });
 });
 

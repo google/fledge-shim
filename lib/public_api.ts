@@ -38,7 +38,7 @@ export interface Ad {
     /**
      * The amount that the buyer is willing to pay in order to have this ad
      * selected. The ad with the highest price is selected; in case of a tie, an
-     * ad with the highest price is selected arbitrarily (based on idb-keyval
+     * ad with the highest price is selected arbitrarily (based on IndexedDB
      * implementation details).
      *
      * This is used by our temporary hardcoded auction logic and will not exist

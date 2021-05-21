@@ -7,7 +7,7 @@
 /** @fileoverview Selection of ads, and creation of tokens to display them. */
 
 import { isArray, isKeyValueObject } from "../lib/shared/types";
-import { getAllAds } from "./database";
+import { getAllAds } from "./db_schema";
 import { FetchJsonStatus, tryFetchJson } from "./fetch";
 
 /**

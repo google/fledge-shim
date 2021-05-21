@@ -5,32 +5,34 @@
  */
 
 import "jasmine";
-import * as idbKeyval from "idb-keyval";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
 import {
   Ad,
   deleteInterestGroup,
   getAllAds,
   setInterestGroupAds,
-} from "./database";
+} from "./db_schema";
+import { useStore } from "./indexeddb";
 
-describe("database:", () => {
+describe("db_schema:", () => {
   clearStorageBeforeAndAfter();
 
   describe("getAllAds", () => {
-    it("should read an ad from idb-keyval", async () => {
+    it("should read an ad from IndexedDB", async () => {
       const ads: Ad[] = [["about:blank", 0.02]];
       await setInterestGroupAds("interest group name", ads);
       expect([...(await getAllAds())]).toEqual(ads);
     });
 
-    it("should read ads from multiple entries in idb-keyval", async () => {
+    it("should read ads from multiple entries in IndexedDB", async () => {
       const ad1: Ad = ["about:blank#1", 0.01];
       const ad2: Ad = ["about:blank#2", 0.02];
       const ad3: Ad = ["about:blank#3", 0.03];
-      await idbKeyval.set("interest group name 1", [ad1]);
-      await idbKeyval.set("interest group name 2", []);
-      await idbKeyval.set("interest group name 3", [ad2, ad3]);
+      await useStore("readwrite", (store) => {
+        store.add([ad1], "interest group name 1");
+        store.add([], "interest group name 2");
+        store.add([ad2, ad3], "interest group name 3");
+      });
       expect([...(await getAllAds())]).toEqual([ad1, ad2, ad3]);
     });
   });
