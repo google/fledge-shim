@@ -10,7 +10,7 @@ import {
   FakeServerHandler,
   setFakeServerHandler,
 } from "../testing/http";
-import { FetchJsonStatus, tryFetchJson } from "./fetch";
+import { FetchJsonResult, FetchJsonStatus, tryFetchJson } from "./fetch";
 
 describe("tryFetchJson", () => {
   const url = "https://json-endpoint.test/path";
@@ -37,7 +37,7 @@ describe("tryFetchJson", () => {
       jasmine.objectContaining<FakeRequest>({
         url: new URL(url),
         method: "GET",
-        headers: jasmine.objectContaining({
+        headers: jasmine.objectContaining<{ [name: string]: string }>({
           "accept": "application/json",
         }),
         body: Uint8Array.of(),
@@ -60,11 +60,44 @@ describe("tryFetchJson", () => {
   });
 
   it("should return a validation error on a wrong MIME type", async () => {
+    const mimeType = "text/html";
     setFakeServerHandler(() =>
       Promise.resolve({
         headers: {
-          "Content-Type": "TeXt/JsOn; blah blah blah",
+          "Content-Type": mimeType,
           "X-Allow-FLEDGE": "true",
+        },
+        body,
+      })
+    );
+    expect(await tryFetchJson(url)).toEqual(
+      jasmine.objectContaining<FetchJsonResult>({
+        status: FetchJsonStatus.VALIDATION_ERROR,
+        errorData: [mimeType],
+      })
+    );
+  });
+
+  it("should return a validation error on a missing MIME type", async () => {
+    setFakeServerHandler(() =>
+      Promise.resolve({
+        headers: {
+          "X-Allow-FLEDGE": "true",
+        },
+        body,
+      })
+    );
+    expect((await tryFetchJson(url)).status).toBe(
+      FetchJsonStatus.VALIDATION_ERROR
+    );
+  });
+
+  it("should accept case-insensitive X-Allow-FLEDGE", async () => {
+    setFakeServerHandler(() =>
+      Promise.resolve({
+        headers: {
+          "Content-Type": "application/json",
+          "X-Allow-FLEDGE": "tRuE",
         },
         body,
       })
@@ -72,17 +105,32 @@ describe("tryFetchJson", () => {
     expect(await tryFetchJson(url)).toEqual(okResult);
   });
 
-  it("should return a validation error on a missing MIME type", async () => {
+  it("should return a validation error on a wrong X-Allow-FLEDGE header", async () => {
+    const xAllowFledge = "nope";
     setFakeServerHandler(() =>
       Promise.resolve({
         headers: {
-          "Content-Type": "TeXt/JsOn; blah blah blah",
-          "X-Allow-FLEDGE": "true",
+          "Content-Type": "application/json",
+          "X-Allow-FLEDGE": xAllowFledge,
         },
         body,
       })
     );
-    expect(await tryFetchJson(url)).toEqual(okResult);
+    expect(await tryFetchJson(url)).toEqual(
+      jasmine.objectContaining<FetchJsonResult>({
+        status: FetchJsonStatus.VALIDATION_ERROR,
+        errorData: [xAllowFledge],
+      })
+    );
+  });
+
+  it("should return a validation error on a missing MIME type", async () => {
+    setFakeServerHandler(() =>
+      Promise.resolve({ headers: { "Content-Type": "application/json" }, body })
+    );
+    expect((await tryFetchJson(url)).status).toBe(
+      FetchJsonStatus.VALIDATION_ERROR
+    );
   });
 
   it("should return a validation error on ill-formed JSON", async () => {
@@ -102,8 +150,23 @@ describe("tryFetchJson", () => {
     });
   });
 
-  it("should handle a network error", async () => {
+  it("should handle a network error on the initial fetch", async () => {
     expect(await tryFetchJson("invalid-scheme://")).toEqual({
+      status: FetchJsonStatus.NETWORK_ERROR,
+    });
+  });
+
+  it("should handle a network error when reading the body", async () => {
+    setFakeServerHandler(() =>
+      Promise.resolve({
+        headers: {
+          "Content-Type": "application/json",
+          "X-Allow-FLEDGE": "true",
+        },
+        body: null,
+      })
+    );
+    expect(await tryFetchJson(url)).toEqual({
       status: FetchJsonStatus.NETWORK_ERROR,
     });
   });

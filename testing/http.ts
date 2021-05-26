@@ -76,8 +76,12 @@ export interface FakeResponse {
    * body at all. Duplicate headers aren't supported.
    */
   readonly headers?: { readonly [name: string]: string };
-  /** Response body. Streaming isn't supported. */
-  readonly body?: string | Readonly<BufferSource>;
+  /**
+   * Response body. Streaming isn't supported. Defaults to empty string. If null
+   * (as opposed to undefined), causes an error to occur when attempting to read
+   * the body.
+   */
+  readonly body?: string | Readonly<BufferSource> | null;
 }
 
 /** A callback that consumes an HTTP request and returns a response. */
