@@ -6,7 +6,8 @@
 
 /** @fileoverview Selection of ads, and creation of tokens to display them. */
 
-import { isArray, isKeyValueObject } from "../lib/shared/types";
+import { isKeyValueObject } from "../lib/shared/types";
+import { logWarning } from "./console";
 import { getAllAds } from "./db_schema";
 import { FetchJsonStatus, tryFetchJson } from "./fetch";
 
@@ -75,20 +76,16 @@ async function fetchAndValidateTrustedScoringSignals(
     [...renderingUrls].map(encodeURIComponent).join(",")
   );
   const response = await tryFetchJson(url.href);
-  function logError(errorMessage: string, errorData: readonly unknown[]) {
-    console.error(
-      `[FLEDGE Shim] Cannot use trusted scoring signals from ${url.href}: ${errorMessage}`,
-      ...errorData
-    );
-  }
+  const basicErrorMessage = "Cannot use trusted scoring signals from";
   switch (response.status) {
     case FetchJsonStatus.OK: {
       const signals = response.value;
       if (!isKeyValueObject(signals)) {
-        logError(
-          `Expected JSON object but received ${jsonTypeOf(signals)}`,
-          []
-        );
+        logWarning(basicErrorMessage, [
+          url.href,
+          ": Expected JSON object but received:",
+          signals,
+        ]);
       }
       return;
     }
@@ -96,17 +93,11 @@ async function fetchAndValidateTrustedScoringSignals(
       // Browser will have logged the error; no need to log it again.
       return;
     case FetchJsonStatus.VALIDATION_ERROR:
-      logError(response.errorMessage, response.errorData ?? []);
+      logWarning(basicErrorMessage, [
+        url.href,
+        ": " + response.errorMessage,
+        ...(response.errorData ?? []),
+      ]);
       return;
   }
-}
-
-function jsonTypeOf(value: unknown) {
-  if (value === null) {
-    return "null";
-  }
-  if (isArray(value)) {
-    return "array";
-  }
-  return typeof value;
 }
