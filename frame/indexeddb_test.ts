@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { assertInstance } from "../lib/shared/types";
+import { assertToBeInstanceOf } from "../testing/assert";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
 import { useStore } from "./indexeddb";
 
@@ -86,7 +86,7 @@ describe("useStore", () => {
       const badRequest = store.add(otherValue, key);
       badRequest.onsuccess = fail;
       badRequest.onerror = (event) => {
-        assertInstance(badRequest.error, DOMException);
+        assertToBeInstanceOf(badRequest.error, DOMException);
         expect(badRequest.error.name).toBe("ConstraintError");
         event.preventDefault();
       };

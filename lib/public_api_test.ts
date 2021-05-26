@@ -5,6 +5,7 @@
  */
 
 import "jasmine";
+import { assertToBeTruthy } from "../testing/assert";
 import {
   FakeRequest,
   FakeServerHandler,
@@ -12,7 +13,6 @@ import {
 } from "../testing/http";
 import { create, renderingUrlFromAuctionResult } from "../testing/public_api";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
-import { nonNullish } from "./shared/types";
 
 describe("FledgeShim", () => {
   clearStorageBeforeAndAfter();
@@ -37,11 +37,9 @@ describe("FledgeShim", () => {
         name,
         ads: [{ renderingUrl, metadata: { price: 0.02 } }],
       });
-      expect(
-        await renderingUrlFromAuctionResult(
-          nonNullish(await fledgeShim.runAdAuction({}))
-        )
-      ).toBe(renderingUrl);
+      const token = await fledgeShim.runAdAuction({});
+      assertToBeTruthy(token);
+      expect(await renderingUrlFromAuctionResult(token)).toBe(renderingUrl);
     });
 
     it("should return the higher-priced ad from a single interest group", async () => {
@@ -54,11 +52,9 @@ describe("FledgeShim", () => {
           { renderingUrl, metadata: { price: 0.02 } },
         ],
       });
-      expect(
-        await renderingUrlFromAuctionResult(
-          nonNullish(await fledgeShim.runAdAuction({}))
-        )
-      ).toBe(renderingUrl);
+      const token = await fledgeShim.runAdAuction({});
+      assertToBeTruthy(token);
+      expect(await renderingUrlFromAuctionResult(token)).toBe(renderingUrl);
     });
 
     it("should return the higher-priced ad across multiple interest groups", async () => {
@@ -72,11 +68,9 @@ describe("FledgeShim", () => {
         name: "interest group 2",
         ads: [{ renderingUrl, metadata: { price: 0.02 } }],
       });
-      expect(
-        await renderingUrlFromAuctionResult(
-          nonNullish(await fledgeShim.runAdAuction({}))
-        )
-      ).toBe(renderingUrl);
+      const token = await fledgeShim.runAdAuction({});
+      assertToBeTruthy(token);
+      expect(await renderingUrlFromAuctionResult(token)).toBe(renderingUrl);
     });
 
     const trustedScoringSignalsUrl = "https://trusted-server.test/scoring";

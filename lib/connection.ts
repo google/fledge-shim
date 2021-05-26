@@ -10,8 +10,8 @@
  * corresponding code for the frame is in `frame/main.ts`.
  */
 
+import { isObject } from "./shared/guards";
 import { awaitMessageFromIframeToSelf } from "./shared/messaging";
-import { isObject } from "./shared/types";
 import { VERSION, VERSION_KEY } from "./shared/version";
 
 /**

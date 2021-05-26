@@ -5,7 +5,7 @@
  */
 
 import "jasmine";
-import { assert } from "../lib/shared/types";
+import { assertToBeTruthy } from "./assert";
 import { cleanDomAfterEach } from "./dom";
 import {
   addMessagePortMatchers,
@@ -55,7 +55,7 @@ describe("testing/messaging:", () => {
     it("should clean up after itself", () => {
       const iframe = document.createElement("iframe");
       document.body.appendChild(iframe);
-      assert(iframe.contentWindow !== null);
+      assertToBeTruthy(iframe.contentWindow);
       const iframeWindowProps = Object.getOwnPropertyNames(
         iframe.contentWindow
       );

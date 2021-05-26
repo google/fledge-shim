@@ -6,7 +6,7 @@
 
 /** @fileoverview Selection of ads, and creation of tokens to display them. */
 
-import { isKeyValueObject } from "../lib/shared/types";
+import { isKeyValueObject } from "../lib/shared/guards";
 import { logWarning } from "./console";
 import { getAllAds } from "./db_schema";
 import { FetchJsonStatus, tryFetchJson } from "./fetch";

@@ -22,8 +22,9 @@
  */
 
 import "jasmine";
+import { isArray } from "../lib/shared/guards";
 import { awaitMessageToPort } from "../lib/shared/messaging";
-import { assert, isArray, nonNullish } from "../lib/shared/types";
+import { assertToBeTruthy } from "./assert";
 
 /**
  * The parts of an HTTP fetch request that this library simulates. This is
@@ -122,17 +123,16 @@ beforeAll(async () => {
   const channel = new MessageChannel();
   port = channel.port1;
   const readyMessagePromise = awaitMessageToPort(port);
-  nonNullish(navigator.serviceWorker.controller).postMessage(null, [
-    channel.port2,
-  ]);
+  assertToBeTruthy(navigator.serviceWorker.controller);
+  navigator.serviceWorker.controller.postMessage(null, [channel.port2]);
   await readyMessagePromise;
   port.onmessage = async ({ data, ports }: MessageEvent<unknown>) => {
-    assert(isArray(data) && data.length === 5);
+    assertToBeTruthy(isArray(data) && data.length === 5);
     const [url, method, requestHeaders, requestBody, hasCredentials] = data;
-    assert(
+    assertToBeTruthy(
       typeof url === "string" &&
         typeof method === "string" &&
-        Array.isArray(requestHeaders) &&
+        isArray(requestHeaders) &&
         requestHeaders.every((header): header is [
           name: string,
           value: string
