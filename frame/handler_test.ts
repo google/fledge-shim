@@ -13,7 +13,11 @@ import {
   RunAdAuctionResponse,
 } from "../lib/shared/protocol";
 import { assertToBeTruthy, assertToSatisfyTypeGuard } from "../testing/assert";
-import { FakeServerHandler, setFakeServerHandler } from "../testing/http";
+import {
+  FakeRequest,
+  FakeServerHandler,
+  setFakeServerHandler,
+} from "../testing/http";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
 import { Ad, getAllAds } from "./db_schema";
 import { handleRequest } from "./handler";
@@ -141,11 +145,8 @@ describe("handleRequest", () => {
     assertToBeTruthy(data[1]);
     expect(sessionStorage.getItem(data[1])).toBe(renderingUrl);
     expect(fakeServerHandler).toHaveBeenCalledOnceWith(
-      jasmine.objectContaining({
-        url: new URL(
-          trustedScoringSignalsUrl +
-            "?hostname=www.example.com&keys=about%253Ablank"
-        ),
+      jasmine.objectContaining<FakeRequest>({
+        url: new URL(trustedScoringSignalsUrl + "?keys=about%3Ablank"),
         method: "GET",
         hasCredentials: false,
       })

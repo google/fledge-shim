@@ -23,11 +23,20 @@ import { FetchJsonStatus, tryFetchJson } from "./fetch";
  * used has no use for scoring signals, but when more algorithms are supported,
  * this data will be passed to them.
  *
+ * The request's `keys` query parameter consists of all the ads' rendering URLs,
+ * escaped and then joined with unescaped commas, ordered first alphabetically
+ * by interest group name and then by the order given in the
+ * `joinAdInterestGroup` call, with only the first kept in case of duplicates.
+ * This leaks some information about interest groups and when they were joined
+ * to the trusted server, but that's okay, since it's trusted.
+ *
  * @param hostname The hostname of the page where the FLEDGE Shim API is
  * running.
  */
 export async function runAdAuction(
   trustedScoringSignalsUrl: string | null,
+  // This is temporary until trustedBiddingSignalsUrl is added.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hostname: string
 ): Promise<string | null> {
   const ads = await getAllAds();
@@ -45,10 +54,9 @@ export async function runAdAuction(
     }
   }
   if (trustedScoringSignalsUrl !== null) {
-    await fetchAndValidateTrustedScoringSignals(
+    await fetchAndValidateTrustedSignals(
       trustedScoringSignalsUrl,
-      hostname,
-      renderingUrls
+      `keys=${[...renderingUrls].map(encodeURIComponent).join(",")}`
     );
   }
   const token = randomToken();
@@ -64,17 +72,26 @@ function randomToken() {
     .join("");
 }
 
-async function fetchAndValidateTrustedScoringSignals(
+async function fetchAndValidateTrustedSignals(
   baseUrl: string,
-  hostname: string,
-  renderingUrls: ReadonlySet<string>
+  queryString: string
 ) {
-  const url = new URL(baseUrl);
-  url.searchParams.append("hostname", hostname);
-  url.searchParams.append(
-    "keys",
-    [...renderingUrls].map(encodeURIComponent).join(",")
-  );
+  let url;
+  try {
+    url = new URL(baseUrl);
+  } catch (error: unknown) {
+    if (error instanceof TypeError) {
+      logWarning("Invalid URL:", [baseUrl]);
+      return;
+    }
+    /* istanbul ignore next */
+    throw error;
+  }
+  if (url.search) {
+    logWarning("Query string not allowed in URL:", [baseUrl]);
+    return;
+  }
+  url.search = queryString;
   const response = await tryFetchJson(url.href);
   const basicErrorMessage = "Cannot use trusted scoring signals from";
   switch (response.status) {

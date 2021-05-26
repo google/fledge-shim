@@ -12,10 +12,6 @@ import {
   setFakeServerHandler,
 } from "../testing/http";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
-import {
-  joinedEncodedStringsMatching,
-  queryParamsMatching,
-} from "../testing/url";
 import { runAdAuction } from "./auction";
 import { setInterestGroupAds } from "./db_schema";
 
@@ -68,8 +64,15 @@ describe("runAdAuction", () => {
     }
   });
 
-  const trustedScoringSignalsUrl =
-    "https://trusted-server.test/scoring?extrakey=value";
+  const trustedScoringSignalsUrl = "https://trusted-server.test/scoring";
+  const headers = {
+    "Content-Type": "application/json",
+    "X-Allow-FLEDGE": "true",
+  };
+  const trustedSignalsResponse = {
+    headers,
+    body: '{"a": 1, "b": [true, null]}',
+  };
 
   it("should fetch trusted scoring signals for ads in a single interest group", async () => {
     await setInterestGroupAds("interest group name", [
@@ -78,32 +81,14 @@ describe("runAdAuction", () => {
     ]);
     const fakeServerHandler = jasmine
       .createSpy<FakeServerHandler>()
-      .and.resolveTo({
-        headers: {
-          "Content-Type": "application/json",
-          "X-Allow-FLEDGE": "true",
-        },
-        body: '{"a": 1, "b": [true, null]}',
-      });
+      .and.resolveTo(trustedSignalsResponse);
     setFakeServerHandler(fakeServerHandler);
     await runAdAuction(trustedScoringSignalsUrl, hostname);
     expect(fakeServerHandler).toHaveBeenCalledOnceWith(
       jasmine.objectContaining<FakeRequest>({
-        url: jasmine.objectContaining<URL>({
-          protocol: "https:",
-          host: "trusted-server.test",
-          pathname: "/scoring",
-          searchParams: queryParamsMatching([
-            ["extrakey", "value"],
-            ["hostname", hostname],
-            [
-              "keys",
-              joinedEncodedStringsMatching(
-                jasmine.arrayWithExactContents([renderingUrl1, renderingUrl2])
-              ),
-            ],
-          ]),
-        }),
+        url: new URL(
+          trustedScoringSignalsUrl + "?keys=about%3Ablank%231,about%3Ablank%232"
+        ),
         headers: jasmine.objectContaining<{ [name: string]: string }>({
           "accept": "application/json",
         }),
@@ -119,32 +104,14 @@ describe("runAdAuction", () => {
     ]);
     const fakeServerHandler = jasmine
       .createSpy<FakeServerHandler>()
-      .and.resolveTo({
-        headers: {
-          "Content-Type": "application/json",
-          "X-Allow-FLEDGE": "true",
-        },
-        body: '{"a": 1, "b": [true, null]}',
-      });
+      .and.resolveTo(trustedSignalsResponse);
     setFakeServerHandler(fakeServerHandler);
     await runAdAuction(trustedScoringSignalsUrl, hostname);
     expect(fakeServerHandler).toHaveBeenCalledOnceWith(
       jasmine.objectContaining<FakeRequest>({
-        url: jasmine.objectContaining<URL>({
-          protocol: "https:",
-          host: "trusted-server.test",
-          pathname: "/scoring",
-          searchParams: queryParamsMatching([
-            ["extrakey", "value"],
-            ["hostname", hostname],
-            [
-              "keys",
-              joinedEncodedStringsMatching(
-                jasmine.arrayWithExactContents([renderingUrl1, renderingUrl2])
-              ),
-            ],
-          ]),
-        }),
+        url: new URL(
+          trustedScoringSignalsUrl + "?keys=about%3Ablank%231,about%3Ablank%232"
+        ),
         headers: jasmine.objectContaining<{ [name: string]: string }>({
           "accept": "application/json",
         }),
@@ -154,7 +121,7 @@ describe("runAdAuction", () => {
   });
 
   it("should not fetch trusted scoring signals if there are no ads", async () => {
-    const fakeServerHandler = jasmine.createSpy();
+    const fakeServerHandler = jasmine.createSpy<FakeServerHandler>();
     setFakeServerHandler(fakeServerHandler);
     await runAdAuction(trustedScoringSignalsUrl, hostname);
     expect(fakeServerHandler).not.toHaveBeenCalled();
@@ -165,10 +132,41 @@ describe("runAdAuction", () => {
       [renderingUrl1, 0.01],
       [renderingUrl2, 0.02],
     ]);
-    const fakeServerHandler = jasmine.createSpy();
+    const fakeServerHandler = jasmine.createSpy<FakeServerHandler>();
     setFakeServerHandler(fakeServerHandler);
     await runAdAuction(/* trustedScoringSignalsUrl= */ null, hostname);
     expect(fakeServerHandler).not.toHaveBeenCalled();
+  });
+
+  it("should log a warning and not fetch trusted scoring signals if URL is ill-formed", async () => {
+    await setInterestGroupAds("interest group name", [
+      [renderingUrl1, 0.01],
+      [renderingUrl2, 0.02],
+    ]);
+    const fakeServerHandler = jasmine.createSpy<FakeServerHandler>();
+    setFakeServerHandler(fakeServerHandler);
+    const consoleSpy = spyOnAllFunctions(console);
+    const notUrl = "This string is not a URL.";
+    await runAdAuction(notUrl, hostname);
+    expect(fakeServerHandler).not.toHaveBeenCalled();
+    expect(consoleSpy.warn).toHaveBeenCalledOnceWith(
+      jasmine.any(String),
+      notUrl
+    );
+  });
+
+  it("should log a warning and not fetch trusted scoring signals if URL has a query string", async () => {
+    await setInterestGroupAds("interest group name", [
+      [renderingUrl1, 0.01],
+      [renderingUrl2, 0.02],
+    ]);
+    const fakeServerHandler = jasmine.createSpy<FakeServerHandler>();
+    setFakeServerHandler(fakeServerHandler);
+    const consoleSpy = spyOnAllFunctions(console);
+    const url = trustedScoringSignalsUrl + "?key=value";
+    await runAdAuction(url, hostname);
+    expect(fakeServerHandler).not.toHaveBeenCalled();
+    expect(consoleSpy.warn).toHaveBeenCalledOnceWith(jasmine.any(String), url);
   });
 
   it("should log a warning if MIME type is wrong", async () => {
@@ -190,7 +188,7 @@ describe("runAdAuction", () => {
     await runAdAuction(trustedScoringSignalsUrl, hostname);
     expect(consoleSpy.warn).toHaveBeenCalledOnceWith(
       jasmine.any(String),
-      jasmine.stringMatching(/.*https:\/\/trusted-server\.test\/scoring.*/),
+      trustedScoringSignalsUrl + "?keys=about%3Ablank%231,about%3Ablank%232",
       jasmine.any(String),
       mimeType
     );
@@ -201,20 +199,12 @@ describe("runAdAuction", () => {
       [renderingUrl1, 0.01],
       [renderingUrl2, 0.02],
     ]);
-    setFakeServerHandler(() =>
-      Promise.resolve({
-        headers: {
-          "Content-Type": "application/json",
-          "X-Allow-FLEDGE": "true",
-        },
-        body: '{"a": 1?}',
-      })
-    );
+    setFakeServerHandler(() => Promise.resolve({ headers, body: '{"a": 1?}' }));
     const consoleSpy = spyOnAllFunctions(console);
     await runAdAuction(trustedScoringSignalsUrl, hostname);
     expect(consoleSpy.warn).toHaveBeenCalledOnceWith(
       jasmine.any(String),
-      jasmine.stringMatching(/.*https:\/\/trusted-server\.test\/scoring.*/),
+      trustedScoringSignalsUrl + "?keys=about%3Ablank%231,about%3Ablank%232",
       // Illegal character is at position 7 in the string
       jasmine.stringMatching(/.*\b7\b.*/)
     );
@@ -227,10 +217,7 @@ describe("runAdAuction", () => {
     ]);
     setFakeServerHandler(() =>
       Promise.resolve({
-        headers: {
-          "Content-Type": "application/json",
-          "X-Allow-FLEDGE": "true",
-        },
+        headers,
         body: "3",
       })
     );
@@ -238,7 +225,7 @@ describe("runAdAuction", () => {
     await runAdAuction(trustedScoringSignalsUrl, hostname);
     expect(consoleSpy.warn).toHaveBeenCalledOnceWith(
       jasmine.any(String),
-      jasmine.stringMatching(/.*https:\/\/trusted-server\.test\/scoring.*/),
+      trustedScoringSignalsUrl + "?keys=about%3Ablank%231,about%3Ablank%232",
       jasmine.any(String),
       3
     );
@@ -260,15 +247,7 @@ describe("runAdAuction", () => {
       [renderingUrl1, 0.01],
       [renderingUrl2, 0.02],
     ]);
-    setFakeServerHandler(() =>
-      Promise.resolve({
-        headers: {
-          "Content-Type": "application/json",
-          "X-Allow-FLEDGE": "true",
-        },
-        body: '{"a": 1, "b": [true, null]}',
-      })
-    );
+    setFakeServerHandler(() => Promise.resolve(trustedSignalsResponse));
     const consoleSpy = spyOnAllFunctions(console);
     await runAdAuction(trustedScoringSignalsUrl, hostname);
     expect(consoleSpy.error).not.toHaveBeenCalled();
