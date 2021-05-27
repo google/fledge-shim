@@ -26,28 +26,32 @@ describe("runAdAuction", () => {
   const hostname = "www.example.com";
 
   it("should return the higher-priced ad from a single interest group", async () => {
-    await storeInterestGroup({ name, ads: [ad1, ad2] });
+    expect(await storeInterestGroup({ name, ads: [ad1, ad2] })).toBeTrue();
     const token = await runAdAuction({}, hostname);
     assertToBeString(token);
     expect(sessionStorage.getItem(token)).toBe(ad2.renderingUrl);
   });
 
   it("should return the higher-priced ad across multiple interest groups", async () => {
-    await storeInterestGroup({ name: "interest group name 1", ads: [ad1] });
-    await storeInterestGroup({ name: "interest group name 2", ads: [ad2] });
+    expect(
+      await storeInterestGroup({ name: "interest group name 1", ads: [ad1] })
+    ).toBeTrue();
+    expect(
+      await storeInterestGroup({ name: "interest group name 2", ads: [ad2] })
+    ).toBeTrue();
     const token = await runAdAuction({}, hostname);
     assertToBeString(token);
     expect(sessionStorage.getItem(token)).toBe(ad2.renderingUrl);
   });
 
-  it("should return null if there are no ads", async () => {
+  it("should return true if there are no ads", async () => {
     const result = await runAdAuction({}, hostname);
-    expect(result).toBeNull();
+    expect(result).toBeTrue();
     expect(sessionStorage.length).toBe(0);
   });
 
   it("should return tokens in the expected format", async () => {
-    await storeInterestGroup({ name, ads: [ad1] });
+    expect(await storeInterestGroup({ name, ads: [ad1] })).toBeTrue();
     for (let i = 0; i < 100; i++) {
       expect(await runAdAuction({}, hostname)).toMatch(/^[0-9a-f]{32}$/);
     }
@@ -64,12 +68,19 @@ describe("runAdAuction", () => {
   };
 
   it("should fetch trusted scoring signals for ads in a single interest group", async () => {
-    await storeInterestGroup({ name, ads: [ad1, ad2] });
+    expect(
+      await storeInterestGroup({
+        name,
+        ads: [ad1, ad2],
+      })
+    ).toBeTrue();
     const fakeServerHandler = jasmine
       .createSpy<FakeServerHandler>()
       .and.resolveTo(trustedSignalsResponse);
     setFakeServerHandler(fakeServerHandler);
-    await runAdAuction({ trustedScoringSignalsUrl }, hostname);
+    expect(
+      await runAdAuction({ trustedScoringSignalsUrl }, hostname)
+    ).toBeTruthy();
     expect(fakeServerHandler).toHaveBeenCalledOnceWith(
       jasmine.objectContaining<FakeRequest>({
         url: new URL(
@@ -84,15 +95,34 @@ describe("runAdAuction", () => {
   });
 
   it("should fetch trusted scoring signals for ads across multiple interest groups", async () => {
-    await storeInterestGroup({ name: "interest group 1", ads: [ad1] });
-    await storeInterestGroup({ name: "interest group 2", ads: [ad2, ad3] });
-    await storeInterestGroup({ name: "interest group 3", ads: [ad4] });
-    await storeInterestGroup({ name: "interest group 4", ads: [] });
+    expect(
+      await storeInterestGroup({
+        name: "interest group 1",
+        ads: [ad1],
+      })
+    ).toBeTrue();
+    expect(
+      await storeInterestGroup({
+        name: "interest group 2",
+        ads: [ad2, ad3],
+      })
+    ).toBeTrue();
+    expect(
+      await storeInterestGroup({ name: "interest group 3", ads: [ad4] })
+    ).toBeTrue();
+    expect(
+      await storeInterestGroup({
+        name: "interest group 4",
+        ads: [],
+      })
+    ).toBeTrue();
     const fakeServerHandler = jasmine
       .createSpy<FakeServerHandler>()
       .and.resolveTo(trustedSignalsResponse);
     setFakeServerHandler(fakeServerHandler);
-    await runAdAuction({ trustedScoringSignalsUrl }, hostname);
+    expect(
+      await runAdAuction({ trustedScoringSignalsUrl }, hostname)
+    ).toBeTruthy();
     expect(fakeServerHandler).toHaveBeenCalledOnceWith(
       jasmine.objectContaining<FakeRequest>({
         url: new URL(
@@ -110,15 +140,22 @@ describe("runAdAuction", () => {
   it("should not fetch trusted scoring signals if there are no ads", async () => {
     const fakeServerHandler = jasmine.createSpy<FakeServerHandler>();
     setFakeServerHandler(fakeServerHandler);
-    await runAdAuction({ trustedScoringSignalsUrl }, hostname);
+    expect(
+      await runAdAuction({ trustedScoringSignalsUrl }, hostname)
+    ).toBeTruthy();
     expect(fakeServerHandler).not.toHaveBeenCalled();
   });
 
   it("should not fetch trusted scoring signals if no URL is provided", async () => {
-    await storeInterestGroup({ name, ads: [ad1, ad2] });
+    expect(
+      await storeInterestGroup({
+        name,
+        ads: [ad1, ad2],
+      })
+    ).toBeTrue();
     const fakeServerHandler = jasmine.createSpy<FakeServerHandler>();
     setFakeServerHandler(fakeServerHandler);
-    await runAdAuction({}, hostname);
+    expect(await runAdAuction({}, hostname)).toBeTruthy();
     expect(fakeServerHandler).not.toHaveBeenCalled();
   });
 
@@ -128,7 +165,9 @@ describe("runAdAuction", () => {
     setFakeServerHandler(fakeServerHandler);
     const consoleSpy = spyOnAllFunctions(console);
     const notUrl = "This string is not a URL.";
-    await runAdAuction({ trustedScoringSignalsUrl: notUrl }, hostname);
+    expect(
+      await runAdAuction({ trustedScoringSignalsUrl: notUrl }, hostname)
+    ).toBeTruthy();
     expect(fakeServerHandler).not.toHaveBeenCalled();
     expect(consoleSpy.warn).toHaveBeenCalledOnceWith(
       jasmine.any(String),
@@ -142,13 +181,15 @@ describe("runAdAuction", () => {
     setFakeServerHandler(fakeServerHandler);
     const consoleSpy = spyOnAllFunctions(console);
     const url = trustedScoringSignalsUrl + "?key=value";
-    await runAdAuction({ trustedScoringSignalsUrl: url }, hostname);
+    expect(
+      await runAdAuction({ trustedScoringSignalsUrl: url }, hostname)
+    ).toBeTruthy();
     expect(fakeServerHandler).not.toHaveBeenCalled();
     expect(consoleSpy.warn).toHaveBeenCalledOnceWith(jasmine.any(String), url);
   });
 
   it("should log a warning if MIME type is wrong", async () => {
-    await storeInterestGroup({ name, ads: [ad1, ad2] });
+    expect(await storeInterestGroup({ name, ads: [ad1, ad2] })).toBeTrue();
     const mimeType = "text/html";
     setFakeServerHandler(() =>
       Promise.resolve({
@@ -160,7 +201,9 @@ describe("runAdAuction", () => {
       })
     );
     const consoleSpy = spyOnAllFunctions(console);
-    await runAdAuction({ trustedScoringSignalsUrl }, hostname);
+    expect(
+      await runAdAuction({ trustedScoringSignalsUrl }, hostname)
+    ).toBeTruthy();
     expect(consoleSpy.warn).toHaveBeenCalledOnceWith(
       jasmine.any(String),
       trustedScoringSignalsUrl + "?keys=about%3Ablank%231,about%3Ablank%232",
@@ -170,10 +213,12 @@ describe("runAdAuction", () => {
   });
 
   it("should log a warning if JSON is ill-formed", async () => {
-    await storeInterestGroup({ name, ads: [ad1, ad2] });
+    expect(await storeInterestGroup({ name, ads: [ad1, ad2] })).toBeTrue();
     setFakeServerHandler(() => Promise.resolve({ headers, body: '{"a": 1?}' }));
     const consoleSpy = spyOnAllFunctions(console);
-    await runAdAuction({ trustedScoringSignalsUrl }, hostname);
+    expect(
+      await runAdAuction({ trustedScoringSignalsUrl }, hostname)
+    ).toBeTruthy();
     expect(consoleSpy.warn).toHaveBeenCalledOnceWith(
       jasmine.any(String),
       trustedScoringSignalsUrl + "?keys=about%3Ablank%231,about%3Ablank%232",
@@ -183,7 +228,7 @@ describe("runAdAuction", () => {
   });
 
   it("should log a warning if JSON value is not an object", async () => {
-    await storeInterestGroup({ name, ads: [ad1, ad2] });
+    expect(await storeInterestGroup({ name, ads: [ad1, ad2] })).toBeTrue();
     setFakeServerHandler(() =>
       Promise.resolve({
         headers,
@@ -191,7 +236,9 @@ describe("runAdAuction", () => {
       })
     );
     const consoleSpy = spyOnAllFunctions(console);
-    await runAdAuction({ trustedScoringSignalsUrl }, hostname);
+    expect(
+      await runAdAuction({ trustedScoringSignalsUrl }, hostname)
+    ).toBeTruthy();
     expect(consoleSpy.warn).toHaveBeenCalledOnceWith(
       jasmine.any(String),
       trustedScoringSignalsUrl + "?keys=about%3Ablank%231,about%3Ablank%232",
@@ -201,36 +248,42 @@ describe("runAdAuction", () => {
   });
 
   it("should not log on network error", async () => {
-    await storeInterestGroup({ name, ads: [ad1, ad2] });
+    expect(await storeInterestGroup({ name, ads: [ad1, ad2] })).toBeTrue();
     const consoleSpy = spyOnAllFunctions(console);
-    await runAdAuction(
-      { trustedScoringSignalsUrl: "invalid-scheme://" },
-      hostname
-    );
+    expect(
+      await runAdAuction(
+        { trustedScoringSignalsUrl: "invalid-scheme://" },
+        hostname
+      )
+    ).toBeTruthy();
     expect(consoleSpy.error).not.toHaveBeenCalled();
     expect(consoleSpy.warn).not.toHaveBeenCalled();
   });
 
-  it("should not log if trusted scoring signals are fetched successfully", async () => {
-    await storeInterestGroup({ name, ads: [ad1, ad2] });
+  it("should not log if trusted bidding and scoring signals are fetched successfully", async () => {
+    expect(await storeInterestGroup({ name, ads: [ad1, ad2] })).toBeTrue();
     setFakeServerHandler(() => Promise.resolve(trustedSignalsResponse));
     const consoleSpy = spyOnAllFunctions(console);
-    await runAdAuction({ trustedScoringSignalsUrl }, hostname);
+    expect(
+      await runAdAuction({ trustedScoringSignalsUrl }, hostname)
+    ).toBeTruthy();
     expect(consoleSpy.error).not.toHaveBeenCalled();
     expect(consoleSpy.warn).not.toHaveBeenCalled();
   });
 
   it("should not log if there are no ads", async () => {
     const consoleSpy = spyOnAllFunctions(console);
-    await runAdAuction({ trustedScoringSignalsUrl }, hostname);
+    expect(
+      await runAdAuction({ trustedScoringSignalsUrl }, hostname)
+    ).toBeTruthy();
     expect(consoleSpy.error).not.toHaveBeenCalled();
     expect(consoleSpy.warn).not.toHaveBeenCalled();
   });
 
   it("should not log if no URL is provided", async () => {
-    await storeInterestGroup({ name, ads: [ad1, ad2] });
+    expect(await storeInterestGroup({ name, ads: [ad1, ad2] })).toBeTrue();
     const consoleSpy = spyOnAllFunctions(console);
-    await runAdAuction({}, hostname);
+    expect(await runAdAuction({}, hostname)).toBeTruthy();
     expect(consoleSpy.error).not.toHaveBeenCalled();
     expect(consoleSpy.warn).not.toHaveBeenCalled();
   });

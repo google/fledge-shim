@@ -23,7 +23,9 @@ export function clearStorageBeforeAndAfter(): void {
 
 async function clearStorage() {
   sessionStorage.clear();
-  await useStore("readwrite", (store) => {
-    store.clear();
-  });
+  expect(
+    await useStore("readwrite", (store) => {
+      store.clear();
+    })
+  ).toBeTrue();
 }

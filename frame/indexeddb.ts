@@ -9,6 +9,8 @@
  * persistently store and retrieve data client-side.
  */
 
+import { logError } from "./console";
+
 const DB_NAME = "fledge-shim";
 const STORE_NAME = "interest-groups";
 
@@ -39,38 +41,53 @@ const dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
 });
 
 /**
- * Runs an arbitrary operation on the IndexedDB object store. `callback` has to
- * be synchronous, but it can create IndexedDB requests, and those requests'
- * `onsuccess` handlers can create further requests, and so forth; the
- * transaction will be committed and the promise resolved after such a task
- * finishes with no further pending requests. Such requests need not register
- * `onerror` handlers, unless they need to do fine-grained error handling; if an
- * exception is thrown and not caught, the transaction will be aborted without
- * committing any writes, and the promise rejected.
+ * Runs an arbitrary operation on the IndexedDB object store and returns whether
+ * it was committed successfully. `callback` has to be synchronous, but it can
+ * create IndexedDB requests, and those requests' `onsuccess` handlers can
+ * create further requests, and so forth; the transaction will be committed and
+ * the promise resolved after such a task finishes with no further pending
+ * requests. Such requests need not register `onerror` handlers, unless they
+ * need to do fine-grained error handling; if an exception is thrown and not
+ * caught, the transaction will be aborted without committing any writes.
  */
 export async function useStore(
   txMode: IDBTransactionMode,
-  callback: (store: IDBObjectStore) => void
-): Promise<void> {
+  callback: (store: IDBObjectStore) => void,
+  storeName: string = STORE_NAME
+): Promise<boolean> {
   const db = await dbPromise;
-  return new Promise((resolve, reject) => {
-    // The FLEDGE API does not offer callers any guarantees about when writes
-    // will be committed; for example, `joinAdInterestGroup` has a synchronous
-    // API that triggers a background task but does not allow the caller to
-    // await that task. Therefore, strict durability is not required for
-    // correctness. So we'll improve latency and user battery life by opting
-    // into relaxed durability, which allows the browser and OS to economize on
-    // potentially expensive writes to disk.
-    const tx = db.transaction(STORE_NAME, txMode, { durability: "relaxed" });
+  return new Promise((resolve) => {
+    let tx: IDBTransaction;
+    try {
+      // The FLEDGE API does not offer callers any guarantees about when writes
+      // will be committed; for example, `joinAdInterestGroup` has a synchronous
+      // API that triggers a background task but does not allow the caller to
+      // await that task. Therefore, strict durability is not required for
+      // correctness. So we'll improve latency and user battery life by opting
+      // into relaxed durability, which allows the browser and OS to economize
+      // on potentially expensive writes to disk.
+      tx = db.transaction(storeName, txMode, { durability: "relaxed" });
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === "NotFoundError") {
+        logError(error.message);
+        resolve(false);
+        return;
+      }
+      /* istanbul ignore next */
+      throw error;
+    }
     tx.oncomplete = () => {
-      resolve();
+      resolve(true);
     };
     tx.onabort = () => {
-      reject(tx.error);
+      if (tx.error) {
+        logError(tx.error.message);
+      }
+      resolve(false);
     };
     // No need to explicitly install an onerror handler since an error aborts
     // the transaction.
-    const store = tx.objectStore(STORE_NAME);
+    const store = tx.objectStore(storeName);
     try {
       callback(store);
     } catch (error: unknown) {

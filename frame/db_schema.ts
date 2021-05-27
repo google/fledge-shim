@@ -55,14 +55,14 @@ function recordFromInterestGroup(group: CanonicalInterestGroup) {
 }
 
 /**
- * Stores an interest group in IndexedDB. If there's already one with the same
- * name, each property value of the existing interest group is overwritten if
- * the new interest group has a defined value for that property, but left
- * unchanged if it does not. Note that there is no way to delete a property of
- * an existing interest group without overwriting it with a defined value or
- * deleting the whole interest group.
+ * Stores an interest group in IndexedDB and returns whether it was committed
+ * successfully. If there's already one with the same name, each property value
+ * of the existing interest group is overwritten if the new interest group has a
+ * defined value for that property, but left unchanged if it does not. Note that
+ * there is no way to delete a property of an existing interest group without
+ * overwriting it with a defined value or deleting the whole interest group.
  */
-export function storeInterestGroup(group: InterestGroup): Promise<void> {
+export function storeInterestGroup(group: InterestGroup): Promise<boolean> {
   return useStore("readwrite", (store) => {
     const { name } = group;
     const cursorRequest = store.openCursor(name);
@@ -98,10 +98,10 @@ export function storeInterestGroup(group: InterestGroup): Promise<void> {
 }
 
 /**
- * Deletes an interest group from IndexedDB. If there isn't one with the given
- * name, does nothing.
+ * Deletes an interest group from IndexedDB and returns whether it was committed
+ * successfully. If there isn't one with the given name, does nothing.
  */
-export function deleteInterestGroup(name: string): Promise<void> {
+export function deleteInterestGroup(name: string): Promise<boolean> {
   return useStore("readwrite", (store) => {
     store.delete(name);
   });
@@ -110,10 +110,13 @@ export function deleteInterestGroup(name: string): Promise<void> {
 /** Iteration callback type for `forEachInterestGroup`. */
 export type InterestGroupCallback = (group: CanonicalInterestGroup) => void;
 
-/** Iterates over all interest groups currently stored in IndexedDB. */
+/**
+ * Iterates over all interest groups currently stored in IndexedDB and returns
+ * whether they were all read successfully.
+ */
 export function forEachInterestGroup(
   callback: InterestGroupCallback
-): Promise<void> {
+): Promise<boolean> {
   return useStore("readonly", (store) => {
     const cursorRequest = store.openCursor();
     cursorRequest.onsuccess = () => {
