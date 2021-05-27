@@ -169,7 +169,7 @@ describe("runAdAuction", () => {
     expect(fakeServerHandler).not.toHaveBeenCalled();
   });
 
-  it("should log to console if MIME type is wrong", async () => {
+  it("should log a warning if MIME type is wrong", async () => {
     await setInterestGroupAds("interest group name", [
       [renderingUrl1, 0.01],
       [renderingUrl2, 0.02],
@@ -186,13 +186,15 @@ describe("runAdAuction", () => {
     );
     const consoleSpy = spyOnAllFunctions(console);
     await runAdAuction(trustedScoringSignalsUrl, hostname);
-    expect(consoleSpy.error).toHaveBeenCalledOnceWith(
+    expect(consoleSpy.warn).toHaveBeenCalledOnceWith(
+      jasmine.any(String),
       jasmine.stringMatching(/.*https:\/\/trusted-server\.test\/scoring.*/),
+      jasmine.any(String),
       mimeType
     );
   });
 
-  it("should log to console if JSON is ill-formed", async () => {
+  it("should log a warning if JSON is ill-formed", async () => {
     await setInterestGroupAds("interest group name", [
       [renderingUrl1, 0.01],
       [renderingUrl2, 0.02],
@@ -208,16 +210,15 @@ describe("runAdAuction", () => {
     );
     const consoleSpy = spyOnAllFunctions(console);
     await runAdAuction(trustedScoringSignalsUrl, hostname);
-    expect(consoleSpy.error).toHaveBeenCalledOnceWith(
-      jasmine.stringMatching(/.*https:\/\/trusted-server\.test\/scoring.*/)
-    );
-    expect(consoleSpy.error).toHaveBeenCalledOnceWith(
+    expect(consoleSpy.warn).toHaveBeenCalledOnceWith(
+      jasmine.any(String),
+      jasmine.stringMatching(/.*https:\/\/trusted-server\.test\/scoring.*/),
       // Illegal character is at position 7 in the string
       jasmine.stringMatching(/.*\b7\b.*/)
     );
   });
 
-  it("should log to console if JSON value is not an object", async () => {
+  it("should log a warning if JSON value is not an object", async () => {
     await setInterestGroupAds("interest group name", [
       [renderingUrl1, 0.01],
       [renderingUrl2, 0.02],
@@ -233,15 +234,15 @@ describe("runAdAuction", () => {
     );
     const consoleSpy = spyOnAllFunctions(console);
     await runAdAuction(trustedScoringSignalsUrl, hostname);
-    expect(consoleSpy.error).toHaveBeenCalledOnceWith(
-      jasmine.stringMatching(/.*https:\/\/trusted-server\.test\/scoring.*/)
-    );
-    expect(consoleSpy.error).toHaveBeenCalledOnceWith(
-      jasmine.stringMatching(/.*\bnumber\b.*/)
+    expect(consoleSpy.warn).toHaveBeenCalledOnceWith(
+      jasmine.any(String),
+      jasmine.stringMatching(/.*https:\/\/trusted-server\.test\/scoring.*/),
+      jasmine.any(String),
+      3
     );
   });
 
-  it("should not log to console on network error", async () => {
+  it("should not log on network error", async () => {
     await setInterestGroupAds("interest group name", [
       [renderingUrl1, 0.01],
       [renderingUrl2, 0.02],
@@ -249,9 +250,10 @@ describe("runAdAuction", () => {
     const consoleSpy = spyOnAllFunctions(console);
     await runAdAuction("invalid-scheme://", hostname);
     expect(consoleSpy.error).not.toHaveBeenCalled();
+    expect(consoleSpy.warn).not.toHaveBeenCalled();
   });
 
-  it("should not log to console if trusted scoring signals are fetched successfully", async () => {
+  it("should not log if trusted scoring signals are fetched successfully", async () => {
     await setInterestGroupAds("interest group name", [
       [renderingUrl1, 0.01],
       [renderingUrl2, 0.02],
@@ -268,15 +270,17 @@ describe("runAdAuction", () => {
     const consoleSpy = spyOnAllFunctions(console);
     await runAdAuction(trustedScoringSignalsUrl, hostname);
     expect(consoleSpy.error).not.toHaveBeenCalled();
+    expect(consoleSpy.warn).not.toHaveBeenCalled();
   });
 
-  it("should not log to console if there are no ads", async () => {
+  it("should not log if there are no ads", async () => {
     const consoleSpy = spyOnAllFunctions(console);
     await runAdAuction(trustedScoringSignalsUrl, hostname);
     expect(consoleSpy.error).not.toHaveBeenCalled();
+    expect(consoleSpy.warn).not.toHaveBeenCalled();
   });
 
-  it("should not log to console if no URL is provided", async () => {
+  it("should not log if no URL is provided", async () => {
     await setInterestGroupAds("interest group name", [
       [renderingUrl1, 0.01],
       [renderingUrl2, 0.02],
@@ -284,5 +288,6 @@ describe("runAdAuction", () => {
     const consoleSpy = spyOnAllFunctions(console);
     await runAdAuction(/* trustedScoringSignalsUrl= */ null, hostname);
     expect(consoleSpy.error).not.toHaveBeenCalled();
+    expect(consoleSpy.warn).not.toHaveBeenCalled();
   });
 });

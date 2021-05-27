@@ -137,5 +137,6 @@ describe("handleRequest", () => {
       })
     );
     expect(consoleSpy.error).not.toHaveBeenCalled();
+    expect(consoleSpy.warn).not.toHaveBeenCalled();
   });
 });
