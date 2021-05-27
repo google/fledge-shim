@@ -5,12 +5,12 @@
  */
 
 /**
- * @fileoverview Types and type guards for the messaging protocol that's used to
- * communicate between the library and the frame after the initial handshake. In
- * general, messages sent over `MessageChannel`s are instances of one of thes
- * types. The type guards facilitate validation at each end.
+ * @fileoverview Serialization and deserialization functions for the messaging
+ * protocol that's used to communicate between the library and the frame after
+ * the initial handshake. For simple data types, type guards are used instead.
  */
 
+import { AuctionAdConfig, InterestGroup } from "../public_api";
 import { isArray } from "./guards";
 
 /**
@@ -20,76 +20,112 @@ import { isArray } from "./guards";
  * for that API.
  */
 export type FledgeRequest =
-  | [RequestTag.JOIN_AD_INTEREST_GROUP, JoinAdInterestGroupRequest]
-  | [RequestTag.LEAVE_AD_INTEREST_GROUP, LeaveAdInterestGroupRequest]
-  | [RequestTag.RUN_AD_AUCTION, RunAdAuctionRequest];
+  | { kind: RequestKind.JOIN_AD_INTEREST_GROUP; group: InterestGroup }
+  | { kind: RequestKind.LEAVE_AD_INTEREST_GROUP; group: InterestGroup }
+  | { kind: RequestKind.RUN_AD_AUCTION; config: AuctionAdConfig };
 
 /**
  * Discriminator for the above discriminated union. Each value corresponds to
  * a different exposed API.
  */
-export enum RequestTag {
+export enum RequestKind {
   JOIN_AD_INTEREST_GROUP,
   LEAVE_AD_INTEREST_GROUP,
   RUN_AD_AUCTION,
 }
 
-/** Inputs for `joinAdInterestGroup` serialized into wire format. */
-export type JoinAdInterestGroupRequest = [
-  name: string,
-  ads: Array<[renderingUrl: string, cpmInUsd: number]> | undefined
-];
-
-/** Type guard for {@link JoinAdInterestGroupRequest}. */
-export function isJoinAdInterestGroupRequest(
-  message: unknown
-): message is JoinAdInterestGroupRequest {
-  if (!isArray(message) || message.length !== 2) {
-    return false;
+/**
+ * Deserializes from postMessage wire format and returns the request it
+ * represents, or null if the input does not represent a valid request.
+ */
+export function requestFromMessageData(
+  messageData: unknown
+): FledgeRequest | null {
+  if (!isArray(messageData)) {
+    return null;
   }
-  const [name, ads] = message;
-  return (
-    typeof name === "string" &&
-    (ads === undefined ||
-      (isArray(ads) &&
-        ads.every((ad: unknown) => {
-          if (!isArray(ad) || ad.length !== 2) {
-            return false;
+  const [kind] = messageData;
+  switch (kind) {
+    case RequestKind.JOIN_AD_INTEREST_GROUP: {
+      if (messageData.length !== 3) {
+        return null;
+      }
+      const [, name, adsMessageData] = messageData;
+      if (typeof name !== "string") {
+        return null;
+      }
+      let ads;
+      if (isArray(adsMessageData)) {
+        ads = [];
+        for (const adMessageData of adsMessageData) {
+          if (!(isArray(adMessageData) && adMessageData.length === 2)) {
+            return null;
           }
-          const [renderingUrl, cpmInUsd] = ad;
-          return (
-            typeof renderingUrl === "string" && typeof cpmInUsd === "number"
-          );
-        })))
-  );
+          const [renderingUrl, price] = adMessageData;
+          if (
+            !(typeof renderingUrl === "string" && typeof price === "number")
+          ) {
+            return null;
+          }
+          ads.push({ renderingUrl, metadata: { price } });
+        }
+      } else if (adsMessageData !== undefined) {
+        return null;
+      }
+      return { kind, group: { name, ads } };
+    }
+    case RequestKind.LEAVE_AD_INTEREST_GROUP: {
+      if (messageData.length !== 2) {
+        return null;
+      }
+      const [, name] = messageData;
+      if (typeof name !== "string") {
+        return null;
+      }
+      return { kind, group: { name } };
+    }
+    case RequestKind.RUN_AD_AUCTION: {
+      if (messageData.length !== 2) {
+        return null;
+      }
+      const [, trustedScoringSignalsUrl] = messageData;
+      if (
+        !(
+          trustedScoringSignalsUrl === undefined ||
+          typeof trustedScoringSignalsUrl === "string"
+        )
+      ) {
+        return null;
+      }
+      return { kind, config: { trustedScoringSignalsUrl } };
+    }
+    default:
+      return null;
+  }
 }
 
-/**
- * Inputs for `leaveAdInterestGroup` serialized into wire format. Currently
- * just a type alias for string because this API doesn't take any inputs with
- * more complicated structure.
- */
-export type LeaveAdInterestGroupRequest = string;
-
-/** Type guard for {@link LeaveAdInterestGroupRequest}. */
-export function isLeaveAdInterestGroupRequest(
-  message: unknown
-): message is LeaveAdInterestGroupRequest {
-  return typeof message === "string";
-}
-
-/**
- * Inputs for `runAdAuction` serialized into wire format. Currently just a type
- * alias for string or `null` because this API doesn't take any inputs with more
- * complicated structure.
- */
-export type RunAdAuctionRequest = string | null;
-
-/** Type guard for {@link RunAdAuctionRequest}. */
-export function isRunAdAuctionRequest(
-  message: unknown
-): message is RunAdAuctionRequest {
-  return typeof message === "string" || message === null;
+/** Serializes a request to postMessage wire format. */
+export function messageDataFromRequest(request: FledgeRequest): unknown {
+  switch (request.kind) {
+    case RequestKind.JOIN_AD_INTEREST_GROUP: {
+      const {
+        kind,
+        group: { name, ads },
+      } = request;
+      return [
+        kind,
+        name,
+        ads?.map(({ renderingUrl, metadata: { price } }) => [
+          renderingUrl,
+          price,
+        ]),
+      ];
+    }
+    case RequestKind.LEAVE_AD_INTEREST_GROUP:
+      return [request.kind, request.group.name];
+    case RequestKind.RUN_AD_AUCTION:
+      return [request.kind, request.config.trustedScoringSignalsUrl];
+  }
 }
 
 /**

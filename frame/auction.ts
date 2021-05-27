@@ -6,6 +6,7 @@
 
 /** @fileoverview Selection of ads, and creation of tokens to display them. */
 
+import { AuctionAdConfig } from "../lib/shared/api_types";
 import { isKeyValueObject } from "../lib/shared/guards";
 import { logWarning } from "./console";
 import { getAllAds } from "./db_schema";
@@ -34,7 +35,7 @@ import { FetchJsonStatus, tryFetchJson } from "./fetch";
  * running.
  */
 export async function runAdAuction(
-  trustedScoringSignalsUrl: string | null,
+  { trustedScoringSignalsUrl }: AuctionAdConfig,
   // This is temporary until trustedBiddingSignalsUrl is added.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hostname: string
@@ -44,23 +45,22 @@ export async function runAdAuction(
   if (firstAdResult.done) {
     return null;
   }
-  let [winningRenderingUrl, winningPrice] = firstAdResult.value;
-  const renderingUrls = new Set([winningRenderingUrl]);
-  for (const [renderingUrl, price] of ads) {
-    renderingUrls.add(renderingUrl);
-    if (price > winningPrice) {
-      winningRenderingUrl = renderingUrl;
-      winningPrice = price;
+  let winner = firstAdResult.value;
+  const renderingUrls = new Set([winner.renderingUrl]);
+  for (const ad of ads) {
+    renderingUrls.add(ad.renderingUrl);
+    if (ad.metadata.price > winner.metadata.price) {
+      winner = ad;
     }
   }
-  if (trustedScoringSignalsUrl !== null) {
+  if (trustedScoringSignalsUrl !== undefined) {
     await fetchAndValidateTrustedSignals(
       trustedScoringSignalsUrl,
       `keys=${[...renderingUrls].map(encodeURIComponent).join(",")}`
     );
   }
   const token = randomToken();
-  sessionStorage.setItem(token, winningRenderingUrl);
+  sessionStorage.setItem(token, winner.renderingUrl);
   return token;
 }
 

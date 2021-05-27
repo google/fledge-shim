@@ -13,9 +13,9 @@ import { awaitConnectionFromIframe } from "./connection";
 import { Ad, AuctionAdConfig, InterestGroup } from "./shared/api_types";
 import { awaitMessageToPort } from "./shared/messaging";
 import {
-  FledgeRequest,
   isRunAdAuctionResponse,
-  RequestTag,
+  messageDataFromRequest,
+  RequestKind,
 } from "./shared/protocol";
 
 export { VERSION } from "./shared/version";
@@ -136,16 +136,13 @@ export class FledgeShim {
    * @see https://github.com/WICG/turtledove/blob/main/FLEDGE.md#11-joining-interest-groups
    */
   joinAdInterestGroup(group: InterestGroup): void {
-    const request: FledgeRequest = [
-      RequestTag.JOIN_AD_INTEREST_GROUP,
-      [
-        group.name,
-        group.ads?.map((ad) => [ad.renderingUrl, ad.metadata.price]),
-      ],
-    ];
+    const messageData = messageDataFromRequest({
+      kind: RequestKind.JOIN_AD_INTEREST_GROUP,
+      group,
+    });
     void this.getState().portPromise.then(
       (port) => {
-        port.postMessage(request);
+        port.postMessage(messageData);
       },
       () => {
         // If portPromise rejected, this will have already been surfaced
@@ -162,13 +159,13 @@ export class FledgeShim {
    * @see https://github.com/WICG/turtledove/blob/main/FLEDGE.md#11-joining-interest-groups
    */
   leaveAdInterestGroup(group: InterestGroup): void {
-    const request: FledgeRequest = [
-      RequestTag.LEAVE_AD_INTEREST_GROUP,
-      group.name,
-    ];
+    const messageData = messageDataFromRequest({
+      kind: RequestKind.LEAVE_AD_INTEREST_GROUP,
+      group,
+    });
     void this.getState().portPromise.then(
       (port) => {
-        port.postMessage(request);
+        port.postMessage(messageData);
       },
       () => {
         // If portPromise rejected, this will have already been surfaced
@@ -207,23 +204,21 @@ export class FledgeShim {
    * @see https://github.com/WICG/turtledove/blob/main/FLEDGE.md#21-initiating-an-on-device-auction
    */
   async runAdAuction(config: AuctionAdConfig): Promise<string | null> {
-    const request: FledgeRequest = [RequestTag.RUN_AD_AUCTION, null];
-    if (config.trustedScoringSignalsUrl !== undefined) {
-      const trustedScoringSignalsUrl = new URL(
-        config.trustedScoringSignalsUrl,
-        document.baseURI
-      );
-      if (trustedScoringSignalsUrl.protocol !== "https:") {
-        throw new Error("frameSrc must be a https: URL");
-      }
-      request[1] = trustedScoringSignalsUrl.href;
-    }
+    const messageData = messageDataFromRequest({
+      kind: RequestKind.RUN_AD_AUCTION,
+      config: {
+        ...config,
+        trustedScoringSignalsUrl: absoluteTrustedSignalsUrl(
+          config.trustedScoringSignalsUrl
+        ),
+      },
+    });
     const { frameSrc, portPromise } = this.getState();
     const mainPort = await portPromise;
     const { port1: receiver, port2: sender } = new MessageChannel();
     try {
       const eventPromise = awaitMessageToPort(receiver);
-      mainPort.postMessage(request, [sender]);
+      mainPort.postMessage(messageData, [sender]);
       const { data } = await eventPromise;
       if (!isRunAdAuctionResponse(data)) {
         throw new Error(
@@ -241,4 +236,30 @@ export class FledgeShim {
       receiver.close();
     }
   }
+}
+
+function absoluteUrl(url: string) {
+  try {
+    return new URL(url, document.baseURI);
+  } catch (error: unknown) {
+    if (error instanceof TypeError) {
+      throw new Error("Invalid URL: " + url);
+    }
+    /* istanbul ignore next */
+    throw error;
+  }
+}
+
+function absoluteTrustedSignalsUrl(url: string | undefined) {
+  if (url === undefined) {
+    return undefined;
+  }
+  const parsedUrl = absoluteUrl(url);
+  if (parsedUrl.protocol !== "https:") {
+    throw new Error("Only https: URLs allowed: " + url);
+  }
+  if (parsedUrl.search) {
+    throw new Error("URL query string not allowed: " + url);
+  }
+  return parsedUrl.href;
 }

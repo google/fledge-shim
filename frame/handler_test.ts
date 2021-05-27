@@ -7,9 +7,9 @@
 import "jasmine";
 import { awaitMessageToPort } from "../lib/shared/messaging";
 import {
-  FledgeRequest,
   isRunAdAuctionResponse,
-  RequestTag,
+  messageDataFromRequest,
+  RequestKind,
   RunAdAuctionResponse,
 } from "../lib/shared/protocol";
 import { assertToBeTruthy, assertToSatisfyTypeGuard } from "../testing/assert";
@@ -19,7 +19,7 @@ import {
   setFakeServerHandler,
 } from "../testing/http";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
-import { Ad, getAllAds } from "./db_schema";
+import { getAllAds } from "./db_schema";
 import { handleRequest } from "./handler";
 
 describe("handleRequest", () => {
@@ -28,12 +28,13 @@ describe("handleRequest", () => {
   const hostname = "www.example.com";
 
   for (const badInput of [
-    undefined,
+    null,
+    new Blob(),
     [],
-    [null],
-    [RequestTag.JOIN_AD_INTEREST_GROUP, true],
-    [RequestTag.LEAVE_AD_INTEREST_GROUP, 0.02],
-    [RequestTag.RUN_AD_AUCTION, []],
+    [undefined],
+    [RequestKind.JOIN_AD_INTEREST_GROUP, true],
+    [RequestKind.LEAVE_AD_INTEREST_GROUP, 0.02],
+    [RequestKind.RUN_AD_AUCTION, []],
   ]) {
     const errorResponse: RunAdAuctionResponse = [false];
 
@@ -74,12 +75,14 @@ describe("handleRequest", () => {
 
   const name = "interest group name";
   const renderingUrl = "about:blank";
-  const ads: Ad[] = [[renderingUrl, 0.02]];
-  const joinRequest: FledgeRequest = [
-    RequestTag.JOIN_AD_INTEREST_GROUP,
-    [name, ads],
-  ];
-  const joinMessageEvent = new MessageEvent("message", { data: joinRequest });
+  const ads = [{ renderingUrl, metadata: { price: 0.02 } }];
+  const group = { name, ads };
+  const joinMessageEvent = new MessageEvent("message", {
+    data: messageDataFromRequest({
+      kind: RequestKind.JOIN_AD_INTEREST_GROUP,
+      group,
+    }),
+  });
 
   it("should join an interest group", async () => {
     await handleRequest(joinMessageEvent, hostname);
@@ -88,12 +91,13 @@ describe("handleRequest", () => {
 
   it("should do nothing when joining an interest group with no ads", async () => {
     await handleRequest(joinMessageEvent, hostname);
-    const emptyJoinRequest: FledgeRequest = [
-      RequestTag.JOIN_AD_INTEREST_GROUP,
-      [name, undefined],
-    ];
     await handleRequest(
-      new MessageEvent("message", { data: emptyJoinRequest }),
+      new MessageEvent("message", {
+        data: messageDataFromRequest({
+          kind: RequestKind.JOIN_AD_INTEREST_GROUP,
+          group: { name, ads: undefined },
+        }),
+      }),
       hostname
     );
     expect([...(await getAllAds())]).toEqual(ads);
@@ -101,12 +105,13 @@ describe("handleRequest", () => {
 
   it("should leave an interest group", async () => {
     await handleRequest(joinMessageEvent, hostname);
-    const leaveRequest: FledgeRequest = [
-      RequestTag.LEAVE_AD_INTEREST_GROUP,
-      name,
-    ];
     await handleRequest(
-      new MessageEvent("message", { data: leaveRequest }),
+      new MessageEvent("message", {
+        data: messageDataFromRequest({
+          kind: RequestKind.LEAVE_AD_INTEREST_GROUP,
+          group,
+        }),
+      }),
       hostname
     );
     expect([...(await getAllAds())]).toEqual([]);
@@ -128,13 +133,12 @@ describe("handleRequest", () => {
       });
     setFakeServerHandler(fakeServerHandler);
     const trustedScoringSignalsUrl = "https://trusted-server.test/scoring";
-    const auctionRequest: FledgeRequest = [
-      RequestTag.RUN_AD_AUCTION,
-      trustedScoringSignalsUrl,
-    ];
     await handleRequest(
       new MessageEvent("message", {
-        data: auctionRequest,
+        data: messageDataFromRequest({
+          kind: RequestKind.RUN_AD_AUCTION,
+          config: { trustedScoringSignalsUrl },
+        }),
         ports: [sender],
       }),
       hostname
