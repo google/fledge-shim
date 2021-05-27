@@ -13,7 +13,7 @@
   "devDependencies": {
     "@angular/compiler": "^12.0.0",
     "@angular/compiler-cli": "^12.0.0",
-    "@angular/core": "^12.0.1",
+    "@angular/core": "^12.0.2",
     "@types/jasmine": "^3.7.4",
     "@typescript-eslint/eslint-plugin": "^4.25.0",
     "@typescript-eslint/parser": "^4.25.0",
