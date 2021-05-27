@@ -38,9 +38,13 @@ export async function handleRequest(
     }
     switch (request.kind) {
       case RequestKind.JOIN_AD_INTEREST_GROUP:
+        // Ignore return value; any errors will have already been logged and
+        // there's nothing more to be done about them.
         await storeInterestGroup(request.group);
         return;
       case RequestKind.LEAVE_AD_INTEREST_GROUP:
+        // Ignore return value; any errors will have already been logged and
+        // there's nothing more to be done about them.
         await deleteInterestGroup(request.group.name);
         return;
       case RequestKind.RUN_AD_AUCTION: {
@@ -50,7 +54,17 @@ export async function handleRequest(
           );
         }
         const [port] = ports;
-        const token = await runAdAuction(request.config, hostname);
+        const result = await runAdAuction(request.config, hostname);
+        let token;
+        switch (result) {
+          case true:
+            token = null;
+            break;
+          case false:
+            throw new Error("IndexedDB error");
+          default:
+            token = result;
+        }
         const response: RunAdAuctionResponse = [true, token];
         port.postMessage(response);
         port.close();

@@ -28,19 +28,21 @@ describe("clearStorageBeforeAndAfter", () => {
       it(`should not already contain item when adding it (${nth} time)`, async () => {
         const value = "IndexedDB value";
         let retrieved: unknown;
-        await useStore("readwrite", (store) => {
-          const countRequest = store.count();
-          countRequest.onsuccess = () => {
-            expect(countRequest.result).toBe(0);
-            const key = "IndexedDB key";
-            store.add(value, key).onsuccess = () => {
-              const retrievalRequest = store.get(key);
-              retrievalRequest.onsuccess = () => {
-                retrieved = retrievalRequest.result;
+        expect(
+          await useStore("readwrite", (store) => {
+            const countRequest = store.count();
+            countRequest.onsuccess = () => {
+              expect(countRequest.result).toBe(0);
+              const key = "IndexedDB key";
+              store.add(value, key).onsuccess = () => {
+                const retrievalRequest = store.get(key);
+                retrievalRequest.onsuccess = () => {
+                  retrieved = retrievalRequest.result;
+                };
               };
             };
-          };
-        });
+          })
+        ).toBeTrue();
         expect(retrieved).toBe(value);
       });
     }

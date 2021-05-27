@@ -16,7 +16,7 @@ import { FetchJsonStatus, tryFetchJson } from "./fetch";
  * Selects the currently stored ad with the highest price, mints a token that
  * can later be used to display that ad (by storing the mapping in
  * `sessionStorage`), and returns the token. If no ads are available, returns
- * `null`.
+ * true. If an error occurs, returns false.
  *
  * Also makes a request to `trustedScoringSignalsUrl`, if one is provided, and
  * validates that it is a JSON object. For now, the data is simply thrown away
@@ -39,19 +39,23 @@ export async function runAdAuction(
   // This is temporary until trustedBiddingSignalsUrl is added.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hostname: string
-): Promise<string | null> {
+): Promise<string | boolean> {
   let winner: Ad | undefined;
   const renderingUrls = new Set<string>();
-  await forEachInterestGroup(({ ads }) => {
-    for (const ad of ads) {
-      renderingUrls.add(ad.renderingUrl);
-      if (!winner || ad.metadata.price > winner.metadata.price) {
-        winner = ad;
+  if (
+    !(await forEachInterestGroup(({ ads }) => {
+      for (const ad of ads) {
+        renderingUrls.add(ad.renderingUrl);
+        if (!winner || ad.metadata.price > winner.metadata.price) {
+          winner = ad;
+        }
       }
-    }
-  });
+    }))
+  ) {
+    return false;
+  }
   if (!winner) {
-    return null;
+    return true;
   }
   if (trustedScoringSignalsUrl !== undefined) {
     await fetchAndValidateTrustedSignals(

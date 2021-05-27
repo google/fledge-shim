@@ -87,7 +87,7 @@ describe("handleRequest", () => {
   it("should join an interest group", async () => {
     await handleRequest(joinMessageEvent, hostname);
     const callback = jasmine.createSpy<InterestGroupCallback>();
-    await forEachInterestGroup(callback);
+    expect(await forEachInterestGroup(callback)).toBeTrue();
     expect(callback).toHaveBeenCalledOnceWith(group);
   });
 
@@ -103,7 +103,7 @@ describe("handleRequest", () => {
       hostname
     );
     const callback = jasmine.createSpy<InterestGroupCallback>();
-    await forEachInterestGroup(callback);
+    expect(await forEachInterestGroup(callback)).toBeTrue();
     expect(callback).toHaveBeenCalledOnceWith(group);
   });
 
@@ -119,7 +119,7 @@ describe("handleRequest", () => {
       hostname
     );
     const callback = jasmine.createSpy<InterestGroupCallback>();
-    await forEachInterestGroup(callback);
+    expect(await forEachInterestGroup(callback)).toBeTrue();
     expect(callback).not.toHaveBeenCalled();
   });
 
