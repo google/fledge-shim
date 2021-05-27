@@ -9,16 +9,13 @@
  * forwards them to the appropriate function.
  */
 
-import { isArray } from "../lib/shared/guards";
 import {
-  RequestTag,
-  isJoinAdInterestGroupRequest,
-  isLeaveAdInterestGroupRequest,
-  isRunAdAuctionRequest,
+  requestFromMessageData,
+  RequestKind,
   RunAdAuctionResponse,
 } from "../lib/shared/protocol";
 import { runAdAuction } from "./auction";
-import { setInterestGroupAds, deleteInterestGroup } from "./db_schema";
+import { deleteInterestGroup, storeInterestGroup } from "./db_schema";
 
 /**
  * Handles a `MessageEvent` representing a request to the FLEDGE API, and sends
@@ -35,45 +32,30 @@ export async function handleRequest(
   hostname: string
 ): Promise<void> {
   try {
-    function checkData(condition: boolean): asserts condition {
-      if (!condition) {
-        throw new Error(`Malformed request: ${JSON.stringify(data)}`);
-      }
+    const request = requestFromMessageData(data);
+    if (!request) {
+      throw new Error(`Malformed request: ${JSON.stringify(data)}`);
     }
-    checkData(isArray(data));
-    switch (data[0]) {
-      case RequestTag.JOIN_AD_INTEREST_GROUP: {
-        const [, request] = data;
-        checkData(isJoinAdInterestGroupRequest(request));
-        const [name, ads] = request;
-        if (ads) {
-          await setInterestGroupAds(name, ads);
-        }
+    switch (request.kind) {
+      case RequestKind.JOIN_AD_INTEREST_GROUP:
+        await storeInterestGroup(request.group);
         return;
-      }
-      case RequestTag.LEAVE_AD_INTEREST_GROUP: {
-        const [, request] = data;
-        checkData(isLeaveAdInterestGroupRequest(request));
-        await deleteInterestGroup(request);
+      case RequestKind.LEAVE_AD_INTEREST_GROUP:
+        await deleteInterestGroup(request.group.name);
         return;
-      }
-      case RequestTag.RUN_AD_AUCTION: {
-        const [, request] = data;
-        checkData(isRunAdAuctionRequest(request));
+      case RequestKind.RUN_AD_AUCTION: {
         if (ports.length !== 1) {
           throw new Error(
             `Port transfer mismatch during request: expected 1 port, but received ${ports.length}`
           );
         }
         const [port] = ports;
-        const token = await runAdAuction(request, hostname);
+        const token = await runAdAuction(request.config, hostname);
         const response: RunAdAuctionResponse = [true, token];
         port.postMessage(response);
         port.close();
         return;
       }
-      default:
-        checkData(false);
     }
   } catch (error: unknown) {
     const response: RunAdAuctionResponse = [false];

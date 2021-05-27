@@ -10,9 +10,9 @@ import {
   awaitMessageToPort,
 } from "../lib/shared/messaging";
 import {
-  FledgeRequest,
-  RequestTag,
   isRunAdAuctionResponse,
+  messageDataFromRequest,
+  RequestKind,
 } from "../lib/shared/protocol";
 import { VERSION, VERSION_KEY } from "../lib/shared/version";
 import { assertToBeTruthy, assertToSatisfyTypeGuard } from "../testing/assert";
@@ -36,15 +36,21 @@ describe("main", () => {
     expect(handshakeData).toEqual({ [VERSION_KEY]: VERSION });
     expect(ports).toHaveSize(1);
     const [port] = ports;
-    const joinRequest: FledgeRequest = [
-      RequestTag.JOIN_AD_INTEREST_GROUP,
-      ["interest group name", [[renderingUrl, 0.02]]],
-    ];
-    port.postMessage(joinRequest);
+    port.postMessage(
+      messageDataFromRequest({
+        kind: RequestKind.JOIN_AD_INTEREST_GROUP,
+        group: {
+          name: "interest group name",
+          ads: [{ renderingUrl, metadata: { price: 0.02 } }],
+        },
+      })
+    );
     const { port1: receiver, port2: sender } = new MessageChannel();
     const auctionMessageEventPromise = awaitMessageToPort(receiver);
-    const auctionRequest: FledgeRequest = [RequestTag.RUN_AD_AUCTION, null];
-    port.postMessage(auctionRequest, [sender]);
+    port.postMessage(
+      messageDataFromRequest({ kind: RequestKind.RUN_AD_AUCTION, config: {} }),
+      [sender]
+    );
     const { data: auctionResponse } = await auctionMessageEventPromise;
     assertToSatisfyTypeGuard(auctionResponse, isRunAdAuctionResponse);
     assertToBeTruthy(auctionResponse[0]);

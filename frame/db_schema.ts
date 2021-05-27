@@ -9,13 +9,14 @@
  * IndexedDB, with runtime type checking.
  */
 
+import { Ad, InterestGroup } from "../lib/shared/api_types";
 import { isArray } from "../lib/shared/guards";
 import { useStore } from "./indexeddb";
 
 /** An `Ad` from the public API serialized into storage format. */
-export type Ad = [renderingUrl: string, price: number];
+type AdRecord = [renderingUrl: string, price: number];
 
-function isInterestGroupAd(value: unknown): value is Ad {
+function isAdRecord(value: unknown): value is AdRecord {
   if (!isArray(value) || value.length !== 2) {
     return false;
   }
@@ -27,10 +28,21 @@ function isInterestGroupAd(value: unknown): value is Ad {
  * Stores an interest group in IndexedDB. If there's already one with the same
  * name, it is overwritten.
  */
-export function setInterestGroupAds(name: string, ads: Ad[]): Promise<void> {
-  return useStore("readwrite", (store) => {
-    store.put(ads, name);
-  });
+export async function storeInterestGroup({
+  name,
+  ads,
+}: InterestGroup): Promise<void> {
+  if (ads) {
+    await useStore("readwrite", (store) => {
+      store.put(
+        ads.map(({ renderingUrl, metadata: { price } }) => {
+          const adRecord: AdRecord = [renderingUrl, price];
+          return adRecord;
+        }),
+        name
+      );
+    });
+  }
 }
 
 /** Deletes an interest group from IndexedDB. */
@@ -61,8 +73,9 @@ export function getAllAds(): Promise<
       }
       check(isArray(ads));
       for (const ad of ads) {
-        check(isInterestGroupAd(ad));
-        yield ad;
+        check(isAdRecord(ad));
+        const [renderingUrl, price] = ad;
+        yield { renderingUrl, metadata: { price } };
       }
     }
   });

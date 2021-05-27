@@ -6,88 +6,193 @@
 
 import "jasmine";
 import {
-  isJoinAdInterestGroupRequest,
-  isLeaveAdInterestGroupRequest,
-  isRunAdAuctionRequest,
+  FledgeRequest,
   isRunAdAuctionResponse,
+  messageDataFromRequest,
+  requestFromMessageData,
+  RequestKind,
 } from "./protocol";
 
-for (const { name, guard, trueExamples, falseExamples } of [
+const requests: Array<{ request: FledgeRequest; messageData: unknown }> = [
   {
-    name: "isJoinAdInterestGroupRequest",
-    guard: isJoinAdInterestGroupRequest,
-    trueExamples: [
-      ["", undefined],
-      ["", []],
-      [
-        "interest group name",
-        [
-          ["https://ad.example/1", 0.02],
-          ["https://ad.example/2", 0.04],
+    request: {
+      kind: RequestKind.JOIN_AD_INTEREST_GROUP,
+      group: { name: "", ads: undefined },
+    },
+    messageData: [RequestKind.JOIN_AD_INTEREST_GROUP, "", undefined],
+  },
+  {
+    request: {
+      kind: RequestKind.JOIN_AD_INTEREST_GROUP,
+      group: {
+        name: "interest group name",
+        ads: [
+          { renderingUrl: "https://ad.example/1", metadata: { price: 0.02 } },
+          { renderingUrl: "https://ad.example/2", metadata: { price: 0.04 } },
         ],
+      },
+    },
+    messageData: [
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "interest group name",
+      [
+        ["https://ad.example/1", 0.02],
+        ["https://ad.example/2", 0.04],
       ],
     ],
-    falseExamples: [
+  },
+  {
+    request: { kind: RequestKind.LEAVE_AD_INTEREST_GROUP, group: { name: "" } },
+    messageData: [RequestKind.LEAVE_AD_INTEREST_GROUP, ""],
+  },
+  {
+    request: {
+      kind: RequestKind.LEAVE_AD_INTEREST_GROUP,
+      group: { name: "interest group name" },
+    },
+    messageData: [RequestKind.LEAVE_AD_INTEREST_GROUP, "interest group name"],
+  },
+  {
+    request: {
+      kind: RequestKind.RUN_AD_AUCTION,
+      config: { trustedScoringSignalsUrl: undefined },
+    },
+    messageData: [RequestKind.RUN_AD_AUCTION, undefined],
+  },
+  {
+    request: {
+      kind: RequestKind.RUN_AD_AUCTION,
+      config: {
+        trustedScoringSignalsUrl: "https://trusted-server.example/scoring",
+      },
+    },
+    messageData: [
+      RequestKind.RUN_AD_AUCTION,
+      "https://trusted-server.example/scoring",
+    ],
+  },
+];
+
+describe("requestFromMessageData", () => {
+  for (const { request, messageData } of requests) {
+    it(`should convert message data to ${JSON.stringify(request)}`, () => {
+      expect(requestFromMessageData(messageData)).toEqual(request);
+    });
+  }
+
+  for (const messageData of [
+    null,
+    new Blob(),
+    [],
+    [true],
+    [42],
+    [RequestKind.JOIN_AD_INTEREST_GROUP, "interest group name"],
+    [RequestKind.JOIN_AD_INTEREST_GROUP, "interest group name", [], 42],
+    [RequestKind.JOIN_AD_INTEREST_GROUP, [], []],
+    [RequestKind.JOIN_AD_INTEREST_GROUP, "interest group name", {}, []],
+    [RequestKind.JOIN_AD_INTEREST_GROUP, "interest group name", "nope"],
+    [RequestKind.JOIN_AD_INTEREST_GROUP, "interest group name", [null]],
+    [
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "interest group name",
+      [["https://ad.example/1", 0.02], []],
+    ],
+    [
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "interest group name",
+      [
+        ["https://ad.example/1", 0.02, true],
+        ["https://ad.example/2", 0.04],
+      ],
+    ],
+    [
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "interest group name",
+      [
+        ["https://ad.example/1", 0.02],
+        ["https://ad.example/2", 0.04],
+        [42, 0.06],
+      ],
+    ],
+    [
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "interest group name",
+      [
+        ["https://ad.example/1", 0.02],
+        ["https://ad.example/2", "nope"],
+        ["https://ad.example/3", 0.04],
+      ],
+    ],
+    [RequestKind.LEAVE_AD_INTEREST_GROUP],
+    [RequestKind.LEAVE_AD_INTEREST_GROUP, "interest group name", []],
+    [RequestKind.LEAVE_AD_INTEREST_GROUP, {}],
+    [RequestKind.RUN_AD_AUCTION],
+    [
+      RequestKind.RUN_AD_AUCTION,
+      "https://trusted-server.example/scoring",
+      null,
+    ],
+    [RequestKind.RUN_AD_AUCTION, true],
+  ]) {
+    it(`should fail to convert ${JSON.stringify(messageData)}`, () => {
+      expect(requestFromMessageData(messageData)).toBeNull();
+    });
+  }
+});
+
+describe("messageDataFromRequest", () => {
+  for (const { request, messageData } of requests) {
+    it(`should convert ${JSON.stringify(request)} to message data`, () => {
+      expect(messageDataFromRequest(request)).toEqual(messageData);
+    });
+  }
+
+  it("should handle optional fields", () => {
+    expect(
+      messageDataFromRequest({
+        kind: RequestKind.JOIN_AD_INTEREST_GROUP,
+        group: { name: "interest group name" },
+      })
+    ).toEqual([
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "interest group name",
       undefined,
-      [],
-      [
-        "interest group name",
-        [
-          ["https://ad.example/1", 0.02],
-          ["https://ad.example/2", 0.04],
-        ],
-        null,
-      ],
-      [true, []],
-      ["interest group name", 3],
-      ["interest group name", ["bad"]],
-      ["interest group name", [["https://ad.example/1", 0.02], []]],
-      [
-        "interest group name",
-        [
-          ["https://ad.example/1", 0.02, []],
-          ["https://ad.example/2", 0.04],
-        ],
-      ],
-      ["interest group name", [[{}, 0.04]]],
-      [
-        "interest group name",
-        [
-          ["https://ad.example/1", 0.02],
-          ["https://ad.example/2", undefined],
-        ],
-      ],
-    ],
-  },
-  {
-    name: "isLeaveAdInterestGroupRequest",
-    guard: isLeaveAdInterestGroupRequest,
-    trueExamples: ["", "interest group name"],
-    falseExamples: [null, true],
-  },
-  {
-    name: "isRunAdAuctionRequest",
-    guard: isRunAdAuctionRequest,
-    trueExamples: [null, "https://trusted-server.example/endpoint"],
-    falseExamples: [3, true],
-  },
-  {
-    name: "isRunAdAuctionResponse",
-    guard: isRunAdAuctionResponse,
-    trueExamples: [[true, null], [true, "token"], [false]],
-    falseExamples: [{}, [], ["token", []], [true], [false, undefined]],
-  },
-]) {
-  describe(name, () => {
-    for (const example of trueExamples) {
-      it(`should return true for ${JSON.stringify(example)}`, () => {
-        expect(guard(example)).toBeTrue();
-      });
-    }
-    for (const example of falseExamples) {
-      it(`should return false for ${JSON.stringify(example)}`, () => {
-        expect(guard(example)).toBeFalse();
-      });
-    }
+    ]);
   });
-}
+
+  it("should ignore inapplicable fields", () => {
+    expect(
+      messageDataFromRequest({
+        kind: RequestKind.LEAVE_AD_INTEREST_GROUP,
+        group: {
+          name: "interest group name",
+          ads: [
+            { renderingUrl: "https://ad.example/1", metadata: { price: 0.02 } },
+            { renderingUrl: "https://ad.example/2", metadata: { price: 0.04 } },
+          ],
+        },
+      })
+    ).toEqual([RequestKind.LEAVE_AD_INTEREST_GROUP, "interest group name"]);
+  });
+});
+
+describe("isRunAdAuctionResponse", () => {
+  for (const messageData of [[true, null], [true, "token"], [false]]) {
+    it(`should return true for ${JSON.stringify(messageData)}`, () => {
+      expect(isRunAdAuctionResponse(messageData)).toBeTrue();
+    });
+  }
+
+  for (const messageData of [
+    42,
+    new Blob(),
+    [],
+    ["token", []],
+    [true],
+    [false, undefined],
+  ]) {
+    it(`should return false for ${JSON.stringify(messageData)}`, () => {
+      expect(isRunAdAuctionResponse(messageData)).toBeFalse();
+    });
+  }
+});
