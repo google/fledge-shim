@@ -8,7 +8,8 @@ import "jasmine";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
 import {
   deleteInterestGroup,
-  getAllAds,
+  forEachInterestGroup,
+  InterestGroupCallback,
   storeInterestGroup,
 } from "./db_schema";
 import { useStore } from "./indexeddb";
@@ -16,14 +17,21 @@ import { useStore } from "./indexeddb";
 describe("db_schema:", () => {
   clearStorageBeforeAndAfter();
 
-  describe("getAllAds", () => {
-    it("should read an ad from IndexedDB", async () => {
-      const ads = [{ renderingUrl: "about:blank", metadata: { price: 0.02 } }];
-      await storeInterestGroup({ name: "interest group name", ads });
-      expect([...(await getAllAds())]).toEqual(ads);
+  const name = "interest group name";
+
+  describe("forEachInterestGroup", () => {
+    it("should read an interest group from IndexedDB", async () => {
+      const group = {
+        name,
+        ads: [{ renderingUrl: "about:blank", metadata: { price: 0.02 } }],
+      };
+      await storeInterestGroup(group);
+      const callback = jasmine.createSpy<InterestGroupCallback>();
+      await forEachInterestGroup(callback);
+      expect(callback).toHaveBeenCalledOnceWith(group);
     });
 
-    it("should read ads from multiple entries in IndexedDB", async () => {
+    it("should read multiple interest groups from IndexedDB", async () => {
       await useStore("readwrite", (store) => {
         store.add([["about:blank#1", 0.01]], "interest group name 1");
         store.add([], "interest group name 2");
@@ -35,52 +43,91 @@ describe("db_schema:", () => {
           "interest group name 3"
         );
       });
-      expect([...(await getAllAds())]).toEqual([
-        { renderingUrl: "about:blank#1", metadata: { price: 0.01 } },
-        { renderingUrl: "about:blank#2", metadata: { price: 0.02 } },
-        { renderingUrl: "about:blank#3", metadata: { price: 0.03 } },
-      ]);
+      const callback = jasmine.createSpy<InterestGroupCallback>();
+      await forEachInterestGroup(callback);
+      expect(callback).toHaveBeenCalledTimes(3);
+      expect(callback).toHaveBeenCalledWith({
+        name: "interest group name 1",
+        ads: [{ renderingUrl: "about:blank#1", metadata: { price: 0.01 } }],
+      });
+      expect(callback).toHaveBeenCalledWith({
+        name: "interest group name 2",
+        ads: [],
+      });
+      expect(callback).toHaveBeenCalledWith({
+        name: "interest group name 3",
+        ads: [
+          { renderingUrl: "about:blank#2", metadata: { price: 0.02 } },
+          { renderingUrl: "about:blank#3", metadata: { price: 0.03 } },
+        ],
+      });
     });
   });
 
   describe("storeInterestGroup", () => {
     it("should write an ad that can then be read", async () => {
-      const name = "interest group name";
-      const ads = [{ renderingUrl: "about:blank", metadata: { price: 0.02 } }];
-      await storeInterestGroup({ name, ads });
-      expect([...(await getAllAds())]).toEqual(ads);
+      const group = {
+        name,
+        ads: [{ renderingUrl: "about:blank", metadata: { price: 0.02 } }],
+      };
+      await storeInterestGroup(group);
+      const callback = jasmine.createSpy<InterestGroupCallback>();
+      await forEachInterestGroup(callback);
+      expect(callback).toHaveBeenCalledOnceWith(group);
+    });
+
+    it("should write an ad without all fields present", async () => {
+      await storeInterestGroup({ name });
+      const callback = jasmine.createSpy<InterestGroupCallback>();
+      await forEachInterestGroup(callback);
+      expect(callback).toHaveBeenCalledOnceWith({
+        name,
+        ads: [],
+      });
     });
 
     it("should overwrite an existing ad", async () => {
-      const name = "interest group name";
       await storeInterestGroup({
         name,
         ads: [{ renderingUrl: "about:blank#1", metadata: { price: 0.01 } }],
       });
-      const ads = [{ renderingUrl: "about:blank", metadata: { price: 0.02 } }];
-      await storeInterestGroup({ name, ads });
-      expect([...(await getAllAds())]).toEqual(ads);
-    });
-  });
-
-  describe("deleteInterestGroup", () => {
-    it("should delete an interest group whose ads then no longer appear", async () => {
-      const ads = [
-        { renderingUrl: "about:blank#1", metadata: { price: 0.01 } },
-      ];
-      await storeInterestGroup({ name: "interest group name 1", ads });
-      const name = "interest group name 2";
       await storeInterestGroup({
         name,
         ads: [{ renderingUrl: "about:blank#2", metadata: { price: 0.02 } }],
       });
-      await deleteInterestGroup(name);
-      expect([...(await getAllAds())]).toEqual(ads);
+      const callback = jasmine.createSpy<InterestGroupCallback>();
+      await forEachInterestGroup(callback);
+      expect(callback).toHaveBeenCalledOnceWith({
+        name,
+        ads: [{ renderingUrl: "about:blank#2", metadata: { price: 0.02 } }],
+      });
     });
 
-    it("should do nothing when deleting a nonexistent interest group", async () => {
-      await deleteInterestGroup("interest group name");
-      expect([...(await getAllAds())]).toEqual([]);
+    describe("deleteInterestGroup", () => {
+      it("should delete an interest group", async () => {
+        await storeInterestGroup({
+          name: "interest group name 1",
+          ads: [{ renderingUrl: "about:blank#1", metadata: { price: 0.01 } }],
+        });
+        await storeInterestGroup({
+          name: "interest group name 2",
+          ads: [{ renderingUrl: "about:blank#2", metadata: { price: 0.02 } }],
+        });
+        await deleteInterestGroup("interest group name 2");
+        const callback = jasmine.createSpy<InterestGroupCallback>();
+        await forEachInterestGroup(callback);
+        expect(callback).toHaveBeenCalledOnceWith({
+          name: "interest group name 1",
+          ads: [{ renderingUrl: "about:blank#1", metadata: { price: 0.01 } }],
+        });
+      });
+
+      it("should do nothing when deleting a nonexistent interest group", async () => {
+        await deleteInterestGroup("interest group name");
+        const callback = jasmine.createSpy<InterestGroupCallback>();
+        await forEachInterestGroup(callback);
+        expect(callback).not.toHaveBeenCalled();
+      });
     });
   });
 });
