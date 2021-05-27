@@ -37,7 +37,7 @@ export enum RequestTag {
 /** Inputs for `joinAdInterestGroup` serialized into wire format. */
 export type JoinAdInterestGroupRequest = [
   name: string,
-  ads: Array<[renderingUrl: string, cpmInUsd: number]>
+  ads: Array<[renderingUrl: string, cpmInUsd: number]> | undefined
 ];
 
 /** Type guard for {@link JoinAdInterestGroupRequest}. */
@@ -50,14 +50,17 @@ export function isJoinAdInterestGroupRequest(
   const [name, ads] = message;
   return (
     typeof name === "string" &&
-    isArray(ads) &&
-    ads.every((ad: unknown) => {
-      if (!isArray(ad) || ad.length !== 2) {
-        return false;
-      }
-      const [renderingUrl, cpmInUsd] = ad;
-      return typeof renderingUrl === "string" && typeof cpmInUsd === "number";
-    })
+    (ads === undefined ||
+      (isArray(ads) &&
+        ads.every((ad: unknown) => {
+          if (!isArray(ad) || ad.length !== 2) {
+            return false;
+          }
+          const [renderingUrl, cpmInUsd] = ad;
+          return (
+            typeof renderingUrl === "string" && typeof cpmInUsd === "number"
+          );
+        })))
   );
 }
 

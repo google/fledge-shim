@@ -46,7 +46,9 @@ export async function handleRequest(
         const [, request] = data;
         checkData(isJoinAdInterestGroupRequest(request));
         const [name, ads] = request;
-        await setInterestGroupAds(name, ads);
+        if (ads) {
+          await setInterestGroupAds(name, ads);
+        }
         return;
       }
       case RequestTag.LEAVE_AD_INTEREST_GROUP: {
