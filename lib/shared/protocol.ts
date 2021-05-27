@@ -11,7 +11,7 @@
  * types. The type guards facilitate validation at each end.
  */
 
-import { isArray } from "./types";
+import { isArray } from "./guards";
 
 /**
  * Wire-format type of the message sent from the library to the frame whenever

@@ -9,6 +9,7 @@
  * forwards them to the appropriate function.
  */
 
+import { isArray } from "../lib/shared/guards";
 import {
   RequestTag,
   isJoinAdInterestGroupRequest,
@@ -16,7 +17,6 @@ import {
   isRunAdAuctionRequest,
   RunAdAuctionResponse,
 } from "../lib/shared/protocol";
-import { isArray } from "../lib/shared/types";
 import { runAdAuction } from "./auction";
 import { setInterestGroupAds, deleteInterestGroup } from "./db_schema";
 

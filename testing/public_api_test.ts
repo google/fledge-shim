@@ -6,7 +6,7 @@
 
 import "jasmine";
 import { FledgeShim } from "../lib/public_api";
-import { assert } from "../lib/shared/types";
+import { assertToBeInstanceOf } from "./assert";
 import { create, renderingUrlFromAuctionResult } from "./public_api";
 import { clearStorageBeforeAndAfter } from "./storage";
 
@@ -42,7 +42,7 @@ describe("renderingUrlFromAuctionResult", () => {
   it("should clean up after itself", async () => {
     sessionStorage.setItem(token, renderingUrl);
     const existingDom = document.documentElement.cloneNode(/* deep= */ true);
-    assert(existingDom instanceof HTMLHtmlElement);
+    assertToBeInstanceOf(existingDom, HTMLHtmlElement);
     await renderingUrlFromAuctionResult("/frame.html#" + token);
     expect(document.documentElement).toEqual(existingDom);
   });

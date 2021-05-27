@@ -9,7 +9,7 @@
  * IndexedDB, with runtime type checking.
  */
 
-import { isArray } from "../lib/shared/types";
+import { isArray } from "../lib/shared/guards";
 import { useStore } from "./indexeddb";
 
 /** An `Ad` from the public API serialized into storage format. */

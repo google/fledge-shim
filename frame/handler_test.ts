@@ -12,7 +12,7 @@ import {
   RequestTag,
   RunAdAuctionResponse,
 } from "../lib/shared/protocol";
-import { assert, assertType, nonNullish } from "../lib/shared/types";
+import { assertToBeTruthy, assertToSatisfyTypeGuard } from "../testing/assert";
 import { FakeServerHandler, setFakeServerHandler } from "../testing/http";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
 import { Ad, getAllAds } from "./db_schema";
@@ -123,9 +123,10 @@ describe("handleRequest", () => {
       hostname
     );
     const { data } = await messageEventPromise;
-    assertType(data, isRunAdAuctionResponse);
-    assert(data[0]);
-    expect(sessionStorage.getItem(nonNullish(data[1]))).toBe(renderingUrl);
+    assertToSatisfyTypeGuard(data, isRunAdAuctionResponse);
+    assertToBeTruthy(data[0]);
+    assertToBeTruthy(data[1]);
+    expect(sessionStorage.getItem(data[1])).toBe(renderingUrl);
     expect(fakeServerHandler).toHaveBeenCalledOnceWith(
       jasmine.objectContaining({
         url: new URL(

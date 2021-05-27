@@ -14,8 +14,8 @@ import {
   RequestTag,
   isRunAdAuctionResponse,
 } from "../lib/shared/protocol";
-import { assert, assertType, nonNullish } from "../lib/shared/types";
 import { VERSION, VERSION_KEY } from "../lib/shared/version";
+import { assertToBeTruthy, assertToSatisfyTypeGuard } from "../testing/assert";
 import { cleanDomAfterEach } from "../testing/dom";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
 import { main } from "./main";
@@ -30,7 +30,8 @@ describe("main", () => {
     const iframe = document.createElement("iframe");
     document.body.appendChild(iframe);
     const handshakeMessageEventPromise = awaitMessageFromSelfToSelf();
-    main(nonNullish(iframe.contentWindow));
+    assertToBeTruthy(iframe.contentWindow);
+    main(iframe.contentWindow);
     const { data: handshakeData, ports } = await handshakeMessageEventPromise;
     expect(handshakeData).toEqual({ [VERSION_KEY]: VERSION });
     expect(ports).toHaveSize(1);
@@ -45,25 +46,25 @@ describe("main", () => {
     const auctionRequest: FledgeRequest = [RequestTag.RUN_AD_AUCTION, null];
     port.postMessage(auctionRequest, [sender]);
     const { data: auctionResponse } = await auctionMessageEventPromise;
-    assertType(auctionResponse, isRunAdAuctionResponse);
-    assert(auctionResponse[0]);
-    expect(sessionStorage.getItem(nonNullish(auctionResponse[1]))).toBe(
-      renderingUrl
-    );
+    assertToSatisfyTypeGuard(auctionResponse, isRunAdAuctionResponse);
+    assertToBeTruthy(auctionResponse[0]);
+    assertToBeTruthy(auctionResponse[1]);
+    expect(sessionStorage.getItem(auctionResponse[1])).toBe(renderingUrl);
   });
 
   const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
   it("should render an ad", () => {
     sessionStorage.setItem(token, renderingUrl);
-    const iframe = document.createElement("iframe");
-    iframe.src = "about:blank#" + token;
-    document.body.appendChild(iframe);
-    assert(iframe.contentWindow !== null);
-    main(iframe.contentWindow);
-    expect(
-      nonNullish(iframe.contentWindow.document.querySelector("iframe")).src
-    ).toBe(renderingUrl);
+    const outerIframe = document.createElement("iframe");
+    outerIframe.src = "about:blank#" + token;
+    document.body.appendChild(outerIframe);
+    assertToBeTruthy(outerIframe.contentWindow);
+    main(outerIframe.contentWindow);
+    const innerIframe =
+      outerIframe.contentWindow.document.querySelector("iframe");
+    assertToBeTruthy(innerIframe);
+    expect(innerIframe.src).toBe(renderingUrl);
   });
 
   it("should render with the exact same dimensions as the outer iframe, with no borders or scrollbars", async () => {
@@ -73,11 +74,11 @@ describe("main", () => {
     outerIframe.style.width = "123px";
     outerIframe.style.height = "45px";
     document.body.appendChild(outerIframe);
-    assert(outerIframe.contentWindow !== null);
+    assertToBeTruthy(outerIframe.contentWindow);
     main(outerIframe.contentWindow);
-    const innerIframe = nonNullish(
-      outerIframe.contentWindow.document.querySelector("iframe")
-    );
+    const innerIframe =
+      outerIframe.contentWindow.document.querySelector("iframe");
+    assertToBeTruthy(innerIframe);
     const expectedRect = {
       left: 0,
       x: 0,
@@ -108,8 +109,8 @@ describe("main", () => {
     const iframe = document.createElement("iframe");
     iframe.src = "about:blank#" + token;
     document.body.appendChild(iframe);
-    const win = nonNullish(iframe.contentWindow);
-    assert(iframe.contentWindow !== null);
+    const win = iframe.contentWindow;
+    assertToBeTruthy(win);
     expect(() => {
       main(win);
     }).toThrowError();

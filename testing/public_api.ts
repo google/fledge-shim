@@ -11,7 +11,7 @@
 
 import "jasmine";
 import { FledgeShim } from "../lib/public_api";
-import { nonNullish } from "../lib/shared/types";
+import { assertToBeTruthy } from "./assert";
 
 let fledgeShims: FledgeShim[] = [];
 
@@ -44,18 +44,19 @@ afterEach(() => {
 export async function renderingUrlFromAuctionResult(
   auctionResultUrl: string
 ): Promise<string> {
-  const iframe = document.createElement("iframe");
-  iframe.src = auctionResultUrl;
+  const outerIframe = document.createElement("iframe");
+  outerIframe.src = auctionResultUrl;
   const loadPromise = new Promise((resolve) => {
-    iframe.addEventListener("load", resolve, { once: true });
+    outerIframe.addEventListener("load", resolve, { once: true });
   });
-  document.body.appendChild(iframe);
+  document.body.appendChild(outerIframe);
   try {
     await loadPromise;
-    return nonNullish(
-      nonNullish(iframe.contentDocument).querySelector("iframe")
-    ).src;
+    assertToBeTruthy(outerIframe.contentDocument);
+    const innerIframe = outerIframe.contentDocument.querySelector("iframe");
+    assertToBeTruthy(innerIframe);
+    return innerIframe.src;
   } finally {
-    iframe.remove();
+    outerIframe.remove();
   }
 }

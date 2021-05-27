@@ -9,8 +9,6 @@
  * persistently store and retrieve data client-side.
  */
 
-import { assert, assertionError } from "../lib/shared/types";
-
 const DB_NAME = "fledge-shim";
 const STORE_NAME = "interest-groups";
 
@@ -18,9 +16,12 @@ const dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
   const dbRequest = indexedDB.open(DB_NAME, /* version= */ 1);
   dbRequest.onupgradeneeded = ({ oldVersion, newVersion }) => {
     // This should be called iff the database is just now being created for the
-    // first time.
-    assert(oldVersion === 0);
-    assert(newVersion === 1);
+    // first time. It shouldn't be possible for the version numbers to differ
+    // from the expected ones.
+    /* istanbul ignore if */
+    if (oldVersion !== 0 || newVersion !== 1) {
+      throw new Error(`${oldVersion},${String(newVersion)}`);
+    }
     dbRequest.result.createObjectStore(STORE_NAME);
   };
   dbRequest.onsuccess = () => {
@@ -32,7 +33,8 @@ const dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
   dbRequest.onblocked = () => {
     // Since the version number is 1 (the lowest allowed), it shouldn't be
     // possible for an earlier version of the same database to already be open.
-    reject(assertionError());
+    /* istanbul ignore next */
+    reject(new Error());
   };
 });
 

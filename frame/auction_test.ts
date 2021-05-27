@@ -5,7 +5,7 @@
  */
 
 import "jasmine";
-import { nonNullish } from "../lib/shared/types";
+import { assertToBeString } from "../testing/assert";
 import {
   FakeRequest,
   FakeServerHandler,
@@ -35,7 +35,8 @@ describe("runAdAuction", () => {
       /* trustedScoringSignalsUrl= */ null,
       hostname
     );
-    expect(sessionStorage.getItem(nonNullish(token))).toBe(renderingUrl2);
+    assertToBeString(token);
+    expect(sessionStorage.getItem(token)).toBe(renderingUrl2);
   });
 
   it("should return the higher-priced ad across multiple interest groups", async () => {
@@ -45,7 +46,8 @@ describe("runAdAuction", () => {
       /* trustedScoringSignalsUrl= */ null,
       hostname
     );
-    expect(sessionStorage.getItem(nonNullish(token))).toBe(renderingUrl2);
+    assertToBeString(token);
+    expect(sessionStorage.getItem(token)).toBe(renderingUrl2);
   });
 
   it("should return null if there are no ads", async () => {
