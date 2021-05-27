@@ -140,11 +140,9 @@ describe("FledgeShim", () => {
         name,
         ads: undefined,
       });
-      expect(
-        await renderingUrlFromAuctionResult(
-          nonNullish(await fledgeShim.runAdAuction({}))
-        )
-      ).toBe(renderingUrl);
+      const token = await fledgeShim.runAdAuction({});
+      assertToBeTruthy(token);
+      expect(await renderingUrlFromAuctionResult(token)).toBe(renderingUrl);
     });
   });
 
