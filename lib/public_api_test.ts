@@ -73,12 +73,14 @@ describe("FledgeShim", () => {
       expect(await renderingUrlFromAuctionResult(token)).toBe(renderingUrl);
     });
 
+    const trustedBiddingSignalsUrl = "https://trusted-server.test/bidding";
     const trustedScoringSignalsUrl = "https://trusted-server.test/scoring";
 
-    it("should fetch trusted scoring signals", async () => {
+    it("should fetch trusted bidding and scoring signals", async () => {
       const fledgeShim = create();
       fledgeShim.joinAdInterestGroup({
         name: "interest group 1",
+        trustedBiddingSignalsUrl,
         ads: [{ renderingUrl: "about:blank", metadata: { price: 0.02 } }],
       });
       const fakeServerHandler = jasmine
@@ -86,7 +88,18 @@ describe("FledgeShim", () => {
         .and.resolveTo({ body: '{"a": 1, "b": [true, null]}' });
       setFakeServerHandler(fakeServerHandler);
       await fledgeShim.runAdAuction({ trustedScoringSignalsUrl });
-      expect(fakeServerHandler).toHaveBeenCalledOnceWith(
+      expect(fakeServerHandler).toHaveBeenCalledTimes(2);
+      expect(fakeServerHandler).toHaveBeenCalledWith(
+        jasmine.objectContaining<FakeRequest>({
+          url: new URL(
+            trustedBiddingSignalsUrl +
+              `?hostname=${encodeURIComponent(location.hostname)}`
+          ),
+          method: "GET",
+          hasCredentials: false,
+        })
+      );
+      expect(fakeServerHandler).toHaveBeenCalledWith(
         jasmine.objectContaining<FakeRequest>({
           url: new URL(trustedScoringSignalsUrl + "?keys=about%3Ablank"),
           method: "GET",

@@ -59,6 +59,11 @@ export interface InterestGroup {
    */
   name: string;
   /**
+   * An HTTPS URL with no query string. If provided, a request to this URL is
+   * made at auction time. The response is expected to be a JSON object.
+   */
+  trustedBiddingSignalsUrl?: string;
+  /**
    * Ads to be entered into the auction for impressions that this interest group
    * is permitted to bid on.
    */

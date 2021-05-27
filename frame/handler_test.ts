@@ -74,9 +74,10 @@ describe("handleRequest", () => {
   }
 
   const name = "interest group name";
+  const trustedBiddingSignalsUrl = "https://trusted-server.test/bidding";
   const renderingUrl = "about:blank";
   const ads = [{ renderingUrl, metadata: { price: 0.02 } }];
-  const group = { name, ads };
+  const group = { name, trustedBiddingSignalsUrl, ads };
   const joinMessageEvent = new MessageEvent("message", {
     data: messageDataFromRequest({
       kind: RequestKind.JOIN_AD_INTEREST_GROUP,
@@ -91,20 +92,28 @@ describe("handleRequest", () => {
     expect(callback).toHaveBeenCalledOnceWith(group);
   });
 
-  it("should do nothing when joining an interest group with no ads", async () => {
+  it("should partially overwrite an existing interest group", async () => {
     await handleRequest(joinMessageEvent, hostname);
+    const newTrustedBiddingSignalsUrl = "https://trusted-server-2.test/bidding";
     await handleRequest(
       new MessageEvent("message", {
         data: messageDataFromRequest({
           kind: RequestKind.JOIN_AD_INTEREST_GROUP,
-          group: { name, ads: undefined },
+          group: {
+            name,
+            trustedBiddingSignalsUrl: newTrustedBiddingSignalsUrl,
+          },
         }),
       }),
       hostname
     );
     const callback = jasmine.createSpy<InterestGroupCallback>();
     expect(await forEachInterestGroup(callback)).toBeTrue();
-    expect(callback).toHaveBeenCalledOnceWith(group);
+    expect(callback).toHaveBeenCalledOnceWith({
+      name,
+      trustedBiddingSignalsUrl: newTrustedBiddingSignalsUrl,
+      ads,
+    });
   });
 
   it("should leave an interest group", async () => {
@@ -154,7 +163,15 @@ describe("handleRequest", () => {
     assertToBeTruthy(data[0]);
     assertToBeTruthy(data[1]);
     expect(sessionStorage.getItem(data[1])).toBe(renderingUrl);
-    expect(fakeServerHandler).toHaveBeenCalledOnceWith(
+    expect(fakeServerHandler).toHaveBeenCalledTimes(2);
+    expect(fakeServerHandler).toHaveBeenCalledWith(
+      jasmine.objectContaining<FakeRequest>({
+        url: new URL(trustedBiddingSignalsUrl + "?hostname=www.example.com"),
+        method: "GET",
+        hasCredentials: false,
+      })
+    );
+    expect(fakeServerHandler).toHaveBeenCalledWith(
       jasmine.objectContaining<FakeRequest>({
         url: new URL(trustedScoringSignalsUrl + "?keys=about%3Ablank"),
         method: "GET",

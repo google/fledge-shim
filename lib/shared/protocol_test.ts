@@ -17,15 +17,16 @@ const requests: Array<{ request: FledgeRequest; messageData: unknown }> = [
   {
     request: {
       kind: RequestKind.JOIN_AD_INTEREST_GROUP,
-      group: { name: "", ads: undefined },
+      group: { name: "", trustedBiddingSignalsUrl: undefined, ads: undefined },
     },
-    messageData: [RequestKind.JOIN_AD_INTEREST_GROUP, "", undefined],
+    messageData: [RequestKind.JOIN_AD_INTEREST_GROUP, "", undefined, undefined],
   },
   {
     request: {
       kind: RequestKind.JOIN_AD_INTEREST_GROUP,
       group: {
         name: "interest group name",
+        trustedBiddingSignalsUrl: "https://trusted-server.example/bidding",
         ads: [
           { renderingUrl: "https://ad.example/1", metadata: { price: 0.02 } },
           { renderingUrl: "https://ad.example/2", metadata: { price: 0.04 } },
@@ -35,6 +36,7 @@ const requests: Array<{ request: FledgeRequest; messageData: unknown }> = [
     messageData: [
       RequestKind.JOIN_AD_INTEREST_GROUP,
       "interest group name",
+      "https://trusted-server.example/bidding",
       [
         ["https://ad.example/1", 0.02],
         ["https://ad.example/2", 0.04],
@@ -86,20 +88,47 @@ describe("requestFromMessageData", () => {
     [],
     [true],
     [42],
-    [RequestKind.JOIN_AD_INTEREST_GROUP, "interest group name"],
-    [RequestKind.JOIN_AD_INTEREST_GROUP, "interest group name", [], 42],
-    [RequestKind.JOIN_AD_INTEREST_GROUP, [], []],
-    [RequestKind.JOIN_AD_INTEREST_GROUP, "interest group name", {}, []],
-    [RequestKind.JOIN_AD_INTEREST_GROUP, "interest group name", "nope"],
-    [RequestKind.JOIN_AD_INTEREST_GROUP, "interest group name", [null]],
     [
       RequestKind.JOIN_AD_INTEREST_GROUP,
       "interest group name",
+      "https://trusted-server.example/bidding",
+    ],
+    [
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "interest group name",
+      "https://trusted-server.example/bidding",
+      [],
+      42,
+    ],
+    [
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      [],
+      "https://trusted-server.example/bidding",
+      [],
+    ],
+    [RequestKind.JOIN_AD_INTEREST_GROUP, "interest group name", {}, []],
+    [
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "interest group name",
+      "https://trusted-server.example/bidding",
+      "nope",
+    ],
+    [
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "interest group name",
+      "https://trusted-server.example/bidding",
+      [null],
+    ],
+    [
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "interest group name",
+      "https://trusted-server.example/bidding",
       [["https://ad.example/1", 0.02], []],
     ],
     [
       RequestKind.JOIN_AD_INTEREST_GROUP,
       "interest group name",
+      "https://trusted-server.example/bidding",
       [
         ["https://ad.example/1", 0.02, true],
         ["https://ad.example/2", 0.04],
@@ -108,6 +137,7 @@ describe("requestFromMessageData", () => {
     [
       RequestKind.JOIN_AD_INTEREST_GROUP,
       "interest group name",
+      "https://trusted-server.example/bidding",
       [
         ["https://ad.example/1", 0.02],
         ["https://ad.example/2", 0.04],
@@ -117,6 +147,7 @@ describe("requestFromMessageData", () => {
     [
       RequestKind.JOIN_AD_INTEREST_GROUP,
       "interest group name",
+      "https://trusted-server.example/bidding",
       [
         ["https://ad.example/1", 0.02],
         ["https://ad.example/2", "nope"],
@@ -157,6 +188,7 @@ describe("messageDataFromRequest", () => {
       RequestKind.JOIN_AD_INTEREST_GROUP,
       "interest group name",
       undefined,
+      undefined,
     ]);
   });
 
@@ -166,6 +198,7 @@ describe("messageDataFromRequest", () => {
         kind: RequestKind.LEAVE_AD_INTEREST_GROUP,
         group: {
           name: "interest group name",
+          trustedBiddingSignalsUrl: "https://trusted-server.example/bidding",
           ads: [
             { renderingUrl: "https://ad.example/1", metadata: { price: 0.02 } },
             { renderingUrl: "https://ad.example/2", metadata: { price: 0.04 } },
