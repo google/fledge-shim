@@ -20,6 +20,8 @@ describe("runAdAuction", () => {
 
   const renderingUrl1 = "about:blank#1";
   const renderingUrl2 = "about:blank#2";
+  const renderingUrl3 = "about:blank#3";
+  const renderingUrl4 = "about:blank#4";
   const hostname = "www.example.com";
 
   it("should return the higher-priced ad from a single interest group", async () => {
@@ -98,10 +100,13 @@ describe("runAdAuction", () => {
   });
 
   it("should fetch trusted scoring signals for ads across multiple interest groups", async () => {
-    await setInterestGroupAds("interest group name", [
-      [renderingUrl1, 0.01],
+    await setInterestGroupAds("interest group 1", [[renderingUrl1, 0.01]]);
+    await setInterestGroupAds("interest group 2", [
       [renderingUrl2, 0.02],
+      [renderingUrl3, 0.03],
     ]);
+    await setInterestGroupAds("interest group 3", [[renderingUrl4, 0.04]]);
+    await setInterestGroupAds("interest group 4", []);
     const fakeServerHandler = jasmine
       .createSpy<FakeServerHandler>()
       .and.resolveTo(trustedSignalsResponse);
@@ -110,7 +115,8 @@ describe("runAdAuction", () => {
     expect(fakeServerHandler).toHaveBeenCalledOnceWith(
       jasmine.objectContaining<FakeRequest>({
         url: new URL(
-          trustedScoringSignalsUrl + "?keys=about%3Ablank%231,about%3Ablank%232"
+          trustedScoringSignalsUrl +
+            "?keys=about%3Ablank%231,about%3Ablank%232,about%3Ablank%233,about%3Ablank%234"
         ),
         headers: jasmine.objectContaining<{ [name: string]: string }>({
           "accept": "application/json",
