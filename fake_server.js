@@ -43,6 +43,14 @@ onfetch = async (fetchEvent) => {
     new Promise((resolve) => {
       receiver.onmessage = ({ data: [status, statusText, headers, body] }) => {
         receiver.close();
+        if (body === null) {
+          // Cause any attempt to read the body to reject.
+          body = new ReadableStream({
+            start(controller) {
+              controller.error();
+            },
+          });
+        }
         const response = new Response(body, { status, statusText });
         // The browser adds this by default when constructing a response with a
         // body, but we want there to be no Content-Type header at all if one

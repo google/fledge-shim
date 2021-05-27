@@ -44,7 +44,8 @@ describe("setFakeServerHandler", () => {
       jasmine.objectContaining<FakeRequest>({
         url: new URL(url),
         method,
-        headers: jasmine.objectContaining(requestHeaders),
+        headers:
+          jasmine.objectContaining<{ [name: string]: string }>(requestHeaders),
         body: requestBody,
         hasCredentials: true,
       })
@@ -62,6 +63,28 @@ describe("setFakeServerHandler", () => {
     );
   });
 
+  it("should reject when attempting to read a null body", async () => {
+    const status = 206;
+    const statusText = "Custom Status";
+    const responseHeaders = { "name-3": "Value-3", "name-4": "Value-4" };
+    setFakeServerHandler(() =>
+      Promise.resolve({
+        status,
+        statusText,
+        headers: responseHeaders,
+        body: null,
+      })
+    );
+    const response = await fetch(url);
+    expect(response.ok).toBeTrue();
+    expect(response.status).toBe(status);
+    expect(response.statusText).toBe(statusText);
+    expect(Object.fromEntries(response.headers.entries())).toEqual(
+      responseHeaders
+    );
+    await expectAsync(response.arrayBuffer()).toBeRejectedWithError(TypeError);
+  });
+
   it("should lowercase header names", async () => {
     const headerValue = "Header value";
     const fakeServerHandler = jasmine
@@ -76,7 +99,9 @@ describe("setFakeServerHandler", () => {
     });
     expect(fakeServerHandler).toHaveBeenCalledOnceWith(
       jasmine.objectContaining<FakeRequest>({
-        headers: jasmine.objectContaining({ "a-request-header": headerValue }),
+        headers: jasmine.objectContaining<{ [name: string]: string }>({
+          "a-request-header": headerValue,
+        }),
       })
     );
   });

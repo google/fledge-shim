@@ -102,7 +102,9 @@ describe("runAdAuction", () => {
             ],
           ]),
         }),
-        headers: jasmine.objectContaining({ "accept": "application/json" }),
+        headers: jasmine.objectContaining<{ [name: string]: string }>({
+          "accept": "application/json",
+        }),
         hasCredentials: false,
       })
     );
@@ -141,7 +143,9 @@ describe("runAdAuction", () => {
             ],
           ]),
         }),
-        headers: jasmine.objectContaining({ "accept": "application/json" }),
+        headers: jasmine.objectContaining<{ [name: string]: string }>({
+          "accept": "application/json",
+        }),
         hasCredentials: false,
       })
     );
@@ -163,6 +167,29 @@ describe("runAdAuction", () => {
     setFakeServerHandler(fakeServerHandler);
     await runAdAuction(/* trustedScoringSignalsUrl= */ null, hostname);
     expect(fakeServerHandler).not.toHaveBeenCalled();
+  });
+
+  it("should log to console if MIME type is wrong", async () => {
+    await setInterestGroupAds("interest group name", [
+      [renderingUrl1, 0.01],
+      [renderingUrl2, 0.02],
+    ]);
+    const mimeType = "text/html";
+    setFakeServerHandler(() =>
+      Promise.resolve({
+        headers: {
+          "Content-Type": mimeType,
+          "X-Allow-FLEDGE": "true",
+        },
+        body: '{"a": 1, "b": [true, null]}',
+      })
+    );
+    const consoleSpy = spyOnAllFunctions(console);
+    await runAdAuction(trustedScoringSignalsUrl, hostname);
+    expect(consoleSpy.error).toHaveBeenCalledOnceWith(
+      jasmine.stringMatching(/.*https:\/\/trusted-server\.test\/scoring.*/),
+      mimeType
+    );
   });
 
   it("should log to console if JSON is ill-formed", async () => {
