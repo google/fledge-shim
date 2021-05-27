@@ -73,7 +73,7 @@ export interface InterestGroup extends InterestGroupIdentity {
    * Ads to be entered into the auction for impressions that this interest group
    * is permitted to bid on.
    */
-  ads: Ad[];
+  ads?: Ad[];
 }
 
 /** TODO */
@@ -184,8 +184,16 @@ export class FledgeShim {
   }
 
   /**
-   * Creates a new registration in this browser for a specified interest group
-   * and stores it client-side.
+   * Creates or updates a registration in this browser for a specified interest
+   * group and stores it client-side.
+   *
+   * If `group.name` is the name of an existing interest group, each of that
+   * existing interest group's properties is overwritten with the corresponding
+   * property from `group`, unless that property from `group` is absent or
+   * `undefined`. For each property of `group` that is absent or undefined, the
+   * corresponding property of the existing interest group is left unmodified.
+   * If `group.name` is not the name of an existing interest group, a new
+   * interest group is created.
    *
    * The second parameter from the FLEDGE spec (`duration`) is not yet
    * supported.
@@ -196,7 +204,10 @@ export class FledgeShim {
   joinAdInterestGroup(group: InterestGroup): void {
     const request: FledgeRequest = [
       RequestTag.JOIN_AD_INTEREST_GROUP,
-      [group.name, group.ads.map((ad) => [ad.renderingUrl, ad.metadata.price])],
+      [
+        group.name,
+        group.ads?.map((ad) => [ad.renderingUrl, ad.metadata.price]),
+      ],
     ];
     void this.getState().portPromise.then(
       (port) => {

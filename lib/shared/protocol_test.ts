@@ -17,6 +17,7 @@ for (const { name, guard, trueExamples, falseExamples } of [
     name: "isJoinAdInterestGroupRequest",
     guard: isJoinAdInterestGroupRequest,
     trueExamples: [
+      ["", undefined],
       ["", []],
       [
         "interest group name",

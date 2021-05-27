@@ -82,6 +82,19 @@ describe("handleRequest", () => {
     expect([...(await getAllAds())]).toEqual(ads);
   });
 
+  it("should do nothing when joining an interest group with no ads", async () => {
+    await handleRequest(joinMessageEvent, hostname);
+    const emptyJoinRequest: FledgeRequest = [
+      RequestTag.JOIN_AD_INTEREST_GROUP,
+      [name, undefined],
+    ];
+    await handleRequest(
+      new MessageEvent("message", { data: emptyJoinRequest }),
+      hostname
+    );
+    expect([...(await getAllAds())]).toEqual(ads);
+  });
+
   it("should leave an interest group", async () => {
     await handleRequest(joinMessageEvent, hostname);
     const leaveRequest: FledgeRequest = [

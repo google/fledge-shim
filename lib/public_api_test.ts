@@ -114,6 +114,40 @@ describe("FledgeShim", () => {
       ).toBeRejectedWithError());
   });
 
+  describe("joinAdInterestGroup", () => {
+    it("should overwrite old property values with new ones", async () => {
+      const fledgeShim = create();
+      const renderingUrl = "about:blank";
+      fledgeShim.joinAdInterestGroup({
+        name,
+        ads: [{ renderingUrl, metadata: { price: 0.02 } }],
+      });
+      fledgeShim.joinAdInterestGroup({
+        name,
+        ads: [],
+      });
+      expect(await fledgeShim.runAdAuction({})).toBeNull();
+    });
+
+    it("should not overwrite old property values with undefined ones", async () => {
+      const fledgeShim = create();
+      const renderingUrl = "about:blank";
+      fledgeShim.joinAdInterestGroup({
+        name,
+        ads: [{ renderingUrl, metadata: { price: 0.02 } }],
+      });
+      fledgeShim.joinAdInterestGroup({
+        name,
+        ads: undefined,
+      });
+      expect(
+        await renderingUrlFromAuctionResult(
+          nonNullish(await fledgeShim.runAdAuction({}))
+        )
+      ).toBe(renderingUrl);
+    });
+  });
+
   describe("leaveAdInterestGroup", () => {
     it("should prevent ads from appearing in the auction", async () => {
       const fledgeShim = create();
