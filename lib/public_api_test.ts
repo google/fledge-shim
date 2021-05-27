@@ -88,11 +88,7 @@ describe("FledgeShim", () => {
       await fledgeShim.runAdAuction({ trustedScoringSignalsUrl });
       expect(fakeServerHandler).toHaveBeenCalledOnceWith(
         jasmine.objectContaining<FakeRequest>({
-          url: new URL(
-            `${trustedScoringSignalsUrl}?hostname=${encodeURIComponent(
-              location.hostname
-            )}&keys=about%253Ablank`
-          ),
+          url: new URL(trustedScoringSignalsUrl + "?keys=about%3Ablank"),
           method: "GET",
           hasCredentials: false,
         })
