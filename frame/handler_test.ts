@@ -19,7 +19,7 @@ import {
   setFakeServerHandler,
 } from "../testing/http";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
-import { getAllAds } from "./db_schema";
+import { forEachInterestGroup, InterestGroupCallback } from "./db_schema";
 import { handleRequest } from "./handler";
 
 describe("handleRequest", () => {
@@ -86,7 +86,9 @@ describe("handleRequest", () => {
 
   it("should join an interest group", async () => {
     await handleRequest(joinMessageEvent, hostname);
-    expect([...(await getAllAds())]).toEqual(ads);
+    const callback = jasmine.createSpy<InterestGroupCallback>();
+    await forEachInterestGroup(callback);
+    expect(callback).toHaveBeenCalledOnceWith(group);
   });
 
   it("should do nothing when joining an interest group with no ads", async () => {
@@ -100,7 +102,9 @@ describe("handleRequest", () => {
       }),
       hostname
     );
-    expect([...(await getAllAds())]).toEqual(ads);
+    const callback = jasmine.createSpy<InterestGroupCallback>();
+    await forEachInterestGroup(callback);
+    expect(callback).toHaveBeenCalledOnceWith(group);
   });
 
   it("should leave an interest group", async () => {
@@ -114,7 +118,9 @@ describe("handleRequest", () => {
       }),
       hostname
     );
-    expect([...(await getAllAds())]).toEqual([]);
+    const callback = jasmine.createSpy<InterestGroupCallback>();
+    await forEachInterestGroup(callback);
+    expect(callback).not.toHaveBeenCalled();
   });
 
   it("should run an ad auction", async () => {

@@ -11,72 +11,121 @@
 
 import { Ad, InterestGroup } from "../lib/shared/api_types";
 import { isArray } from "../lib/shared/guards";
+import { logWarning } from "./console";
 import { useStore } from "./indexeddb";
 
-/** An `Ad` from the public API serialized into storage format. */
-type AdRecord = [renderingUrl: string, price: number];
+/**
+ * Analogous to {@link InterestGroup}, but all fields are required. This
+ * represents an interest group as it is stored in the database.
+ */
+export interface CanonicalInterestGroup {
+  name: string;
+  ads: Ad[];
+}
 
-function isAdRecord(value: unknown): value is AdRecord {
-  if (!isArray(value) || value.length !== 2) {
-    return false;
+function interestGroupFromRecord(record: unknown, key: IDBValidKey) {
+  function handleMalformedEntry() {
+    logWarning("Malformed entry in IndexedDB for key:", [key, ":", record]);
+    return null;
   }
-  const [renderingUrl, cpmInUsd] = value;
-  return typeof renderingUrl === "string" && typeof cpmInUsd === "number";
+  if (!(typeof key === "string" && isArray(record))) {
+    return handleMalformedEntry();
+  }
+  const ads = [];
+  for (const adRecord of record) {
+    if (!(isArray(adRecord) && adRecord.length === 2)) {
+      return handleMalformedEntry();
+    }
+    const [renderingUrl, price] = adRecord;
+    if (!(typeof renderingUrl === "string" && typeof price === "number")) {
+      return handleMalformedEntry();
+    }
+    ads.push({ renderingUrl, metadata: { price } });
+  }
+  return { name: key, ads };
+}
+
+function recordFromInterestGroup(group: CanonicalInterestGroup) {
+  return group.ads
+    ? group.ads.map(({ renderingUrl, metadata: { price } }) => [
+        renderingUrl,
+        price,
+      ])
+    : [];
 }
 
 /**
  * Stores an interest group in IndexedDB. If there's already one with the same
- * name, it is overwritten.
+ * name, each property value of the existing interest group is overwritten if
+ * the new interest group has a defined value for that property, but left
+ * unchanged if it does not. Note that there is no way to delete a property of
+ * an existing interest group without overwriting it with a defined value or
+ * deleting the whole interest group.
  */
-export async function storeInterestGroup({
-  name,
-  ads,
-}: InterestGroup): Promise<void> {
-  if (ads) {
-    await useStore("readwrite", (store) => {
-      store.put(
-        ads.map(({ renderingUrl, metadata: { price } }) => {
-          const adRecord: AdRecord = [renderingUrl, price];
-          return adRecord;
-        }),
-        name
-      );
-    });
-  }
+export function storeInterestGroup(group: InterestGroup): Promise<void> {
+  return useStore("readwrite", (store) => {
+    const { name } = group;
+    const cursorRequest = store.openCursor(name);
+    cursorRequest.onsuccess = () => {
+      const cursor = cursorRequest.result;
+      if (cursor) {
+        // It shouldn't be possible for the cursor key to differ from the
+        // expected one.
+        /* istanbul ignore if */
+        if (cursor.key !== name) {
+          throw new Error(`${String(cursor.key)},${name}`);
+        }
+        const oldGroup = interestGroupFromRecord(cursor.value, name) ?? {
+          ads: [],
+        };
+        cursor.update(
+          recordFromInterestGroup({
+            name,
+            ads: group.ads ?? oldGroup.ads,
+          })
+        );
+      } else {
+        store.add(
+          recordFromInterestGroup({
+            name,
+            ads: group.ads ?? [],
+          }),
+          name
+        );
+      }
+    };
+  });
 }
 
-/** Deletes an interest group from IndexedDB. */
+/**
+ * Deletes an interest group from IndexedDB. If there isn't one with the given
+ * name, does nothing.
+ */
 export function deleteInterestGroup(name: string): Promise<void> {
   return useStore("readwrite", (store) => {
     store.delete(name);
   });
 }
 
-/** Returns all ads from all interest groups currently stored in IndexedDB. */
-export function getAllAds(): Promise<
-  Generator<Ad, /* TReturn= */ void, /* TNext= */ void>
-> {
-  let interestGroups: unknown[];
+/** Iteration callback type for `forEachInterestGroup`. */
+export type InterestGroupCallback = (group: CanonicalInterestGroup) => void;
+
+/** Iterates over all interest groups currently stored in IndexedDB. */
+export function forEachInterestGroup(
+  callback: InterestGroupCallback
+): Promise<void> {
   return useStore("readonly", (store) => {
-    const cursor = store.getAll();
-    cursor.onsuccess = () => {
-      interestGroups = cursor.result;
+    const cursorRequest = store.openCursor();
+    cursorRequest.onsuccess = () => {
+      const cursor = cursorRequest.result;
+      if (!cursor) {
+        return;
+      }
+      const group = interestGroupFromRecord(cursor.value, cursor.key);
+      if (group) {
+        callback(group);
+      }
+      cursor.continue();
     };
-  }).then(function* () {
-    for (const ads of interestGroups) {
-      function check(condition: boolean): asserts condition {
-        if (!condition) {
-          throw new Error(
-            `Malformed entry in IndexedDB: ${JSON.stringify(ads)}`
-          );
-        }
-      }
-      check(isArray(ads));
-      for (const ad of ads) {
-        check(isAdRecord(ad));
-        const [renderingUrl, price] = ad;
-        yield { renderingUrl, metadata: { price } };
-      }
-    }
   });
 }

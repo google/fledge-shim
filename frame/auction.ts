@@ -6,10 +6,10 @@
 
 /** @fileoverview Selection of ads, and creation of tokens to display them. */
 
-import { AuctionAdConfig } from "../lib/shared/api_types";
+import { Ad, AuctionAdConfig } from "../lib/shared/api_types";
 import { isKeyValueObject } from "../lib/shared/guards";
 import { logWarning } from "./console";
-import { getAllAds } from "./db_schema";
+import { forEachInterestGroup } from "./db_schema";
 import { FetchJsonStatus, tryFetchJson } from "./fetch";
 
 /**
@@ -40,18 +40,18 @@ export async function runAdAuction(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hostname: string
 ): Promise<string | null> {
-  const ads = await getAllAds();
-  const firstAdResult = ads.next();
-  if (firstAdResult.done) {
-    return null;
-  }
-  let winner = firstAdResult.value;
-  const renderingUrls = new Set([winner.renderingUrl]);
-  for (const ad of ads) {
-    renderingUrls.add(ad.renderingUrl);
-    if (ad.metadata.price > winner.metadata.price) {
-      winner = ad;
+  let winner: Ad | undefined;
+  const renderingUrls = new Set<string>();
+  await forEachInterestGroup(({ ads }) => {
+    for (const ad of ads) {
+      renderingUrls.add(ad.renderingUrl);
+      if (!winner || ad.metadata.price > winner.metadata.price) {
+        winner = ad;
+      }
     }
+  });
+  if (!winner) {
+    return null;
   }
   if (trustedScoringSignalsUrl !== undefined) {
     await fetchAndValidateTrustedSignals(
