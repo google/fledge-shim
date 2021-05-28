@@ -109,7 +109,7 @@ describe("FledgeShim", () => {
     });
 
     it("should not fetch trusted scoring signals if there are no ads", async () => {
-      const fakeServerHandler = jasmine.createSpy();
+      const fakeServerHandler = jasmine.createSpy<FakeServerHandler>();
       setFakeServerHandler(fakeServerHandler);
       await create().runAdAuction({ trustedScoringSignalsUrl });
       expect(fakeServerHandler).not.toHaveBeenCalled();
@@ -158,10 +158,9 @@ describe("FledgeShim", () => {
   describe("leaveAdInterestGroup", () => {
     it("should prevent ads from appearing in the auction", async () => {
       const fledgeShim = create();
-      const renderingUrl = "about:blank";
       fledgeShim.joinAdInterestGroup({
         name,
-        ads: [{ renderingUrl, metadata: { price: 0.02 } }],
+        ads: [{ renderingUrl: "about:blank", metadata: { price: 0.02 } }],
       });
       fledgeShim.leaveAdInterestGroup({ name });
       expect(await fledgeShim.runAdAuction({})).toBeNull();
