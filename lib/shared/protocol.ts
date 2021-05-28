@@ -138,30 +138,15 @@ export function messageDataFromRequest(request: FledgeRequest): unknown {
 /**
  * Wire-format type of the message sent from the frame to the library in
  * response to a `runAdAuction` call, over the one-off `MessageChannel`
- * established by the library during that call.
+ * established by the library during that call. A string is a token; true means
+ * that the auction completed successfully but did not return an ad; false means
+ * that an error occurred.
  */
-export type RunAdAuctionResponse =
-  | [success: false]
-  | [success: true, token: string | null];
+export type RunAdAuctionResponse = string | boolean;
 
 /** Type guard for {@link RunAdAuctionResponse}. */
 export function isRunAdAuctionResponse(
-  message: unknown
-): message is RunAdAuctionResponse {
-  if (!isArray(message)) {
-    return false;
-  }
-  switch (message[0]) {
-    case true: {
-      if (message.length !== 2) {
-        return false;
-      }
-      const [, token] = message;
-      return typeof token === "string" || token === null;
-    }
-    case false:
-      return message.length === 1;
-    default:
-      return false;
-  }
+  messageData: unknown
+): messageData is RunAdAuctionResponse {
+  return typeof messageData === "string" || typeof messageData === "boolean";
 }

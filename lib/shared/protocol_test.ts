@@ -210,20 +210,13 @@ describe("messageDataFromRequest", () => {
 });
 
 describe("isRunAdAuctionResponse", () => {
-  for (const messageData of [[true, null], [true, "token"], [false]]) {
+  for (const messageData of [true, false, "", "token"]) {
     it(`should return true for ${JSON.stringify(messageData)}`, () => {
       expect(isRunAdAuctionResponse(messageData)).toBeTrue();
     });
   }
 
-  for (const messageData of [
-    42,
-    new Blob(),
-    [],
-    ["token", []],
-    [true],
-    [false, undefined],
-  ]) {
+  for (const messageData of [42, new Blob()]) {
     it(`should return false for ${JSON.stringify(messageData)}`, () => {
       expect(isRunAdAuctionResponse(messageData)).toBeFalse();
     });
