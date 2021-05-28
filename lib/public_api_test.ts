@@ -44,6 +44,30 @@ describe("FledgeShim", () => {
         new FledgeShim("/frame.html#");
       }).toThrowError(/.*\/frame\.html#.*/);
     });
+
+    it("should create an invisible iframe", () => {
+      create();
+      const iframe = document.querySelector("iframe");
+      assertToBeTruthy(iframe);
+      expect(iframe.src).toBe(new URL("/frame.html", document.baseURI).href);
+      expect(getComputedStyle(iframe).display).toBe("none");
+    });
+
+    it("should create a sandboxed iframe", () => {
+      create();
+      const iframe = document.querySelector("iframe");
+      assertToBeTruthy(iframe);
+      expect(iframe.src).toBe(new URL("/frame.html", document.baseURI).href);
+      assertToBeTruthy(iframe.contentDocument);
+      // Try to navigate the top window from within the iframe. If this
+      // succeeds, it will break the connection between the page and the Karma
+      // server, which will cause the test to fail. However, it should not
+      // succeed because the iframe should be sandboxed without
+      // allow-top-navigation.
+      const script = iframe.contentDocument.createElement("script");
+      script.textContent = "top.location.pathname = '/favicon.ico';";
+      iframe.contentDocument.head.appendChild(script);
+    });
   });
 
   const name = "interest group name";
