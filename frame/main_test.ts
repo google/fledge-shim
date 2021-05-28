@@ -36,10 +36,11 @@ describe("main", () => {
     const handshakeMessageEventPromise = awaitMessageFromSelfToSelf();
     assertToBeTruthy(iframe.contentWindow);
     main(iframe.contentWindow);
-    const { data: handshakeData, ports } = await handshakeMessageEventPromise;
-    expect(handshakeData).toEqual({ [VERSION_KEY]: VERSION });
-    expect(ports).toHaveSize(1);
-    const [port] = ports;
+    const handshakeMessageEvent = await handshakeMessageEventPromise;
+    assertToBeTruthy(handshakeMessageEvent);
+    expect(handshakeMessageEvent.data).toEqual({ [VERSION_KEY]: VERSION });
+    expect(handshakeMessageEvent.ports).toHaveSize(1);
+    const [port] = handshakeMessageEvent.ports;
     port.postMessage(
       messageDataFromRequest({
         kind: RequestKind.JOIN_AD_INTEREST_GROUP,
@@ -55,7 +56,9 @@ describe("main", () => {
       messageDataFromRequest({ kind: RequestKind.RUN_AD_AUCTION, config: {} }),
       [sender]
     );
-    const { data: auctionResponse } = await auctionMessageEventPromise;
+    const auctionMessageEvent = await auctionMessageEventPromise;
+    assertToBeTruthy(auctionMessageEvent);
+    const { data: auctionResponse } = auctionMessageEvent;
     assertToSatisfyTypeGuard(auctionResponse, isRunAdAuctionResponse);
     assertToBeString(auctionResponse);
     expect(sessionStorage.getItem(auctionResponse)).toBe(renderingUrl);

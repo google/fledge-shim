@@ -11,7 +11,11 @@ import {
   messageDataFromRequest,
   RequestKind,
 } from "../lib/shared/protocol";
-import { assertToBeString, assertToSatisfyTypeGuard } from "../testing/assert";
+import {
+  assertToBeString,
+  assertToBeTruthy,
+  assertToSatisfyTypeGuard,
+} from "../testing/assert";
 import {
   FakeRequest,
   FakeServerHandler,
@@ -135,7 +139,9 @@ describe("handleRequest", () => {
       }),
       hostname
     );
-    const { data } = await messageEventPromise;
+    const event = await messageEventPromise;
+    assertToBeTruthy(event);
+    const { data } = event;
     assertToSatisfyTypeGuard(data, isRunAdAuctionResponse);
     assertToBeString(data);
     expect(sessionStorage.getItem(data)).toBe(renderingUrl);

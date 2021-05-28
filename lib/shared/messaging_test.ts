@@ -5,6 +5,7 @@
  */
 
 import "jasmine";
+import { assertToBeTruthy } from "../../testing/assert";
 import { cleanDomAfterEach } from "../../testing/dom";
 import {
   addMessagePortMatchers,
@@ -29,7 +30,9 @@ describe("messaging:", () => {
       const payload = crypto.getRandomValues(new Int32Array(1))[0];
       const { port1, port2 } = new MessageChannel();
       postMessageFromIframeToSelf(iframe, payload, [port1]);
-      const { data, origin, ports, source } = await messageEventPromise;
+      const messageEvent = await messageEventPromise;
+      assertToBeTruthy(messageEvent);
+      const { data, origin, ports, source } = messageEvent;
       expect(data).toBe(payload);
       expect(origin).toBe(window.origin);
       expect(ports).toHaveSize(1);
@@ -60,13 +63,13 @@ describe("messaging:", () => {
     const POSTMESSAGE_WASM_MODULE_SRCDOC =
       "<!DOCTYPE html><title>Helper</title><script>parent.postMessage(new WebAssembly.Module(Uint8Array.of(0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x00, 0x00)), '*');</script>";
 
-    it("should reject on message error", async () => {
+    it("should return null on message error", async () => {
       const iframe = document.createElement("iframe");
       iframe.srcdoc = POSTMESSAGE_WASM_MODULE_SRCDOC;
       iframe.sandbox.add("allow-scripts");
       const messageEventPromise = awaitMessageFromIframeToSelf(iframe);
       document.body.appendChild(iframe);
-      await expectAsync(messageEventPromise).toBeRejectedWithError();
+      expect(await messageEventPromise).toBeNull();
     });
 
     it("should ignore message errors from other windows", async () => {
@@ -91,7 +94,9 @@ describe("messaging:", () => {
       const payload = crypto.getRandomValues(new Int32Array(1))[0];
       const { port1, port2 } = new MessageChannel();
       postMessage(payload, window.origin, [port1]);
-      const { data, origin, ports, source } = await messageEventPromise;
+      const messageEvent = await messageEventPromise;
+      assertToBeTruthy(messageEvent);
+      const { data, origin, ports, source } = messageEvent;
       expect(data).toBe(payload);
       expect(origin).toBe(window.origin);
       expect(ports).toHaveSize(1);
@@ -117,7 +122,9 @@ describe("messaging:", () => {
       const payload = crypto.getRandomValues(new Int32Array(1))[0];
       const { port1, port2 } = new MessageChannel();
       sender.postMessage(payload, [port1]);
-      const { data, ports } = await messageEventPromise;
+      const messageEvent = await messageEventPromise;
+      assertToBeTruthy(messageEvent);
+      const { data, ports } = messageEvent;
       expect(data).toBe(payload);
       expect(ports).toHaveSize(1);
       await expectAsync(ports[0]).toBeEntangledWith(port2);
