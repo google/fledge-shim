@@ -20,6 +20,7 @@ import { useStore } from "./indexeddb";
  */
 export interface CanonicalInterestGroup {
   name: string;
+  trustedBiddingSignalsUrl: string | undefined;
   ads: Ad[];
 }
 
@@ -28,11 +29,21 @@ function interestGroupFromRecord(record: unknown, key: IDBValidKey) {
     logWarning("Malformed entry in IndexedDB for key:", [key, ":", record]);
     return null;
   }
-  if (!(typeof key === "string" && isArray(record))) {
+  if (!(typeof key === "string" && isArray(record) && record.length === 2)) {
+    return handleMalformedEntry();
+  }
+  const [trustedBiddingSignalsUrl, adRecords] = record;
+  if (
+    !(
+      (trustedBiddingSignalsUrl === undefined ||
+        typeof trustedBiddingSignalsUrl === "string") &&
+      isArray(adRecords)
+    )
+  ) {
     return handleMalformedEntry();
   }
   const ads = [];
-  for (const adRecord of record) {
+  for (const adRecord of adRecords) {
     if (!(isArray(adRecord) && adRecord.length === 2)) {
       return handleMalformedEntry();
     }
@@ -42,16 +53,19 @@ function interestGroupFromRecord(record: unknown, key: IDBValidKey) {
     }
     ads.push({ renderingUrl, metadata: { price } });
   }
-  return { name: key, ads };
+  return { name: key, trustedBiddingSignalsUrl, ads };
 }
 
 function recordFromInterestGroup(group: CanonicalInterestGroup) {
-  return group.ads
-    ? group.ads.map(({ renderingUrl, metadata: { price } }) => [
-        renderingUrl,
-        price,
-      ])
-    : [];
+  return [
+    group.trustedBiddingSignalsUrl,
+    group.ads
+      ? group.ads.map(({ renderingUrl, metadata: { price } }) => [
+          renderingUrl,
+          price,
+        ])
+      : [],
+  ];
 }
 
 /**
@@ -76,11 +90,15 @@ export function storeInterestGroup(group: InterestGroup): Promise<boolean> {
           throw new Error(`${String(cursor.key)},${name}`);
         }
         const oldGroup = interestGroupFromRecord(cursor.value, name) ?? {
+          trustedBiddingSignalsUrl: undefined,
           ads: [],
         };
         cursor.update(
           recordFromInterestGroup({
             name,
+            trustedBiddingSignalsUrl:
+              group.trustedBiddingSignalsUrl ??
+              oldGroup.trustedBiddingSignalsUrl,
             ads: group.ads ?? oldGroup.ads,
           })
         );
@@ -88,6 +106,7 @@ export function storeInterestGroup(group: InterestGroup): Promise<boolean> {
         store.add(
           recordFromInterestGroup({
             name,
+            trustedBiddingSignalsUrl: group.trustedBiddingSignalsUrl,
             ads: group.ads ?? [],
           }),
           name

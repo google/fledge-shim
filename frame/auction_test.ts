@@ -57,6 +57,7 @@ describe("runAdAuction", () => {
     }
   });
 
+  const trustedBiddingSignalsUrl = "https://trusted-server.test/bidding";
   const trustedScoringSignalsUrl = "https://trusted-server.test/scoring";
   const headers = {
     "Content-Type": "application/json",
@@ -67,10 +68,11 @@ describe("runAdAuction", () => {
     body: '{"a": 1, "b": [true, null]}',
   };
 
-  it("should fetch trusted scoring signals for ads in a single interest group", async () => {
+  it("should fetch trusted bidding and scoring signals for ads in a single interest group", async () => {
     expect(
       await storeInterestGroup({
         name,
+        trustedBiddingSignalsUrl,
         ads: [ad1, ad2],
       })
     ).toBeTrue();
@@ -81,7 +83,17 @@ describe("runAdAuction", () => {
     expect(
       await runAdAuction({ trustedScoringSignalsUrl }, hostname)
     ).toBeTruthy();
-    expect(fakeServerHandler).toHaveBeenCalledOnceWith(
+    expect(fakeServerHandler).toHaveBeenCalledTimes(2);
+    expect(fakeServerHandler).toHaveBeenCalledWith(
+      jasmine.objectContaining<FakeRequest>({
+        url: new URL(trustedBiddingSignalsUrl + "?hostname=www.example.com"),
+        headers: jasmine.objectContaining<{ [name: string]: string }>({
+          "accept": "application/json",
+        }),
+        hasCredentials: false,
+      })
+    );
+    expect(fakeServerHandler).toHaveBeenCalledWith(
       jasmine.objectContaining<FakeRequest>({
         url: new URL(
           trustedScoringSignalsUrl + "?keys=about%3Ablank%231,about%3Ablank%232"
@@ -94,16 +106,18 @@ describe("runAdAuction", () => {
     );
   });
 
-  it("should fetch trusted scoring signals for ads across multiple interest groups", async () => {
+  it("should fetch trusted bidding and scoring signals for ads across multiple interest groups", async () => {
     expect(
       await storeInterestGroup({
         name: "interest group 1",
+        trustedBiddingSignalsUrl: "https://trusted-server-1.test/bidding",
         ads: [ad1],
       })
     ).toBeTrue();
     expect(
       await storeInterestGroup({
         name: "interest group 2",
+        trustedBiddingSignalsUrl: "https://trusted-server-2.test/bidding",
         ads: [ad2, ad3],
       })
     ).toBeTrue();
@@ -113,6 +127,7 @@ describe("runAdAuction", () => {
     expect(
       await storeInterestGroup({
         name: "interest group 4",
+        trustedBiddingSignalsUrl: "https://trusted-server-3.test/bidding",
         ads: [],
       })
     ).toBeTrue();
@@ -123,7 +138,30 @@ describe("runAdAuction", () => {
     expect(
       await runAdAuction({ trustedScoringSignalsUrl }, hostname)
     ).toBeTruthy();
-    expect(fakeServerHandler).toHaveBeenCalledOnceWith(
+    expect(fakeServerHandler).toHaveBeenCalledTimes(3);
+    expect(fakeServerHandler).toHaveBeenCalledWith(
+      jasmine.objectContaining<FakeRequest>({
+        url: new URL(
+          "https://trusted-server-1.test/bidding?hostname=www.example.com"
+        ),
+        headers: jasmine.objectContaining<{ [name: string]: string }>({
+          "accept": "application/json",
+        }),
+        hasCredentials: false,
+      })
+    );
+    expect(fakeServerHandler).toHaveBeenCalledWith(
+      jasmine.objectContaining<FakeRequest>({
+        url: new URL(
+          "https://trusted-server-2.test/bidding?hostname=www.example.com"
+        ),
+        headers: jasmine.objectContaining<{ [name: string]: string }>({
+          "accept": "application/json",
+        }),
+        hasCredentials: false,
+      })
+    );
+    expect(fakeServerHandler).toHaveBeenCalledWith(
       jasmine.objectContaining<FakeRequest>({
         url: new URL(
           trustedScoringSignalsUrl +
@@ -137,7 +175,7 @@ describe("runAdAuction", () => {
     );
   });
 
-  it("should not fetch trusted scoring signals if there are no ads", async () => {
+  it("should not fetch trusted scoring signals if there are no interest groups", async () => {
     const fakeServerHandler = jasmine.createSpy<FakeServerHandler>();
     setFakeServerHandler(fakeServerHandler);
     expect(
@@ -146,17 +184,40 @@ describe("runAdAuction", () => {
     expect(fakeServerHandler).not.toHaveBeenCalled();
   });
 
+  it("should not fetch trusted scoring signals if there are no ads in the interest groups", async () => {
+    expect(
+      await storeInterestGroup({ name, trustedBiddingSignalsUrl, ads: [] })
+    ).toBeTrue();
+    const fakeServerHandler = jasmine
+      .createSpy<FakeServerHandler>()
+      .and.resolveTo(trustedSignalsResponse);
+    setFakeServerHandler(fakeServerHandler);
+    await runAdAuction({ trustedScoringSignalsUrl }, hostname);
+    expect(fakeServerHandler).not.toHaveBeenCalled();
+  });
+
   it("should not fetch trusted scoring signals if no URL is provided", async () => {
     expect(
       await storeInterestGroup({
         name,
+        trustedBiddingSignalsUrl,
         ads: [ad1, ad2],
       })
     ).toBeTrue();
-    const fakeServerHandler = jasmine.createSpy<FakeServerHandler>();
+    const fakeServerHandler = jasmine
+      .createSpy<FakeServerHandler>()
+      .and.resolveTo(trustedSignalsResponse);
     setFakeServerHandler(fakeServerHandler);
     expect(await runAdAuction({}, hostname)).toBeTruthy();
-    expect(fakeServerHandler).not.toHaveBeenCalled();
+    expect(fakeServerHandler).toHaveBeenCalledOnceWith(
+      jasmine.objectContaining<FakeRequest>({
+        url: new URL(trustedBiddingSignalsUrl + "?hostname=www.example.com"),
+        headers: jasmine.objectContaining<{ [name: string]: string }>({
+          "accept": "application/json",
+        }),
+        hasCredentials: false,
+      })
+    );
   });
 
   it("should log a warning and not fetch trusted scoring signals if URL is ill-formed", async () => {
@@ -261,7 +322,13 @@ describe("runAdAuction", () => {
   });
 
   it("should not log if trusted bidding and scoring signals are fetched successfully", async () => {
-    expect(await storeInterestGroup({ name, ads: [ad1, ad2] })).toBeTrue();
+    expect(
+      await storeInterestGroup({
+        name,
+        trustedBiddingSignalsUrl,
+        ads: [ad1, ad2],
+      })
+    ).toBeTrue();
     setFakeServerHandler(() => Promise.resolve(trustedSignalsResponse));
     const consoleSpy = spyOnAllFunctions(console);
     expect(

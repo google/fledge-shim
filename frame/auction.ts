@@ -18,11 +18,13 @@ import { FetchJsonStatus, tryFetchJson } from "./fetch";
  * `sessionStorage`), and returns the token. If no ads are available, returns
  * true. If an error occurs, returns false.
  *
- * Also makes a request to `trustedScoringSignalsUrl`, if one is provided, and
- * validates that it is a JSON object. For now, the data is simply thrown away
- * after that initial validation, because the simple scoring algorithm currently
- * used has no use for scoring signals, but when more algorithms are supported,
- * this data will be passed to them.
+ * Also makes a request to each stored interest group's
+ * `trustedBiddingSignalsUrl`, and to `trustedScoringSignalsUrl` if one is
+ * provided, and validates that each response is a JSON object. For now, the
+ * data is simply thrown away after that initial validation, because the simple
+ * bidding and scoring algorithms currently used have no use for dynamic
+ * signals, but when more algorithms are supported, this data will be passed to
+ * them.
  *
  * The request's `keys` query parameter consists of all the ads' rendering URLs,
  * escaped and then joined with unescaped commas, ordered first alphabetically
@@ -36,14 +38,16 @@ import { FetchJsonStatus, tryFetchJson } from "./fetch";
  */
 export async function runAdAuction(
   { trustedScoringSignalsUrl }: AuctionAdConfig,
-  // This is temporary until trustedBiddingSignalsUrl is added.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hostname: string
 ): Promise<string | boolean> {
   let winner: Ad | undefined;
+  const trustedBiddingSignalsUrls = new Set<string>();
   const renderingUrls = new Set<string>();
   if (
-    !(await forEachInterestGroup(({ ads }) => {
+    !(await forEachInterestGroup(({ trustedBiddingSignalsUrl, ads }) => {
+      if (trustedBiddingSignalsUrl !== undefined && ads.length) {
+        trustedBiddingSignalsUrls.add(trustedBiddingSignalsUrl);
+      }
       for (const ad of ads) {
         renderingUrls.add(ad.renderingUrl);
         if (!winner || ad.metadata.price > winner.metadata.price) {
@@ -57,12 +61,23 @@ export async function runAdAuction(
   if (!winner) {
     return true;
   }
-  if (trustedScoringSignalsUrl !== undefined) {
-    await fetchAndValidateTrustedSignals(
-      trustedScoringSignalsUrl,
-      `keys=${[...renderingUrls].map(encodeURIComponent).join(",")}`
-    );
-  }
+  // Make all the network requests in parallel.
+  await Promise.all(
+    (function* () {
+      for (const trustedBiddingSignalsUrl of trustedBiddingSignalsUrls) {
+        yield fetchAndValidateTrustedSignals(
+          trustedBiddingSignalsUrl,
+          `hostname=${encodeURIComponent(hostname)}`
+        );
+      }
+      if (trustedScoringSignalsUrl !== undefined) {
+        yield fetchAndValidateTrustedSignals(
+          trustedScoringSignalsUrl,
+          `keys=${[...renderingUrls].map(encodeURIComponent).join(",")}`
+        );
+      }
+    })()
+  );
   const token = randomToken();
   sessionStorage.setItem(token, winner.renderingUrl);
   return token;

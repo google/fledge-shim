@@ -129,6 +129,11 @@ export class FledgeShim {
    * If `group.name` is not the name of an existing interest group, a new
    * interest group is created.
    *
+   * A consequence of this is that it's possible to create an interest group
+   * with `trustedBiddingSignalsUrl: undefined`, but not to overwrite the
+   * `trustedBiddingSignalsUrl` of an existing interest group with `undefined`
+   * without deleting the entire interest group.
+   *
    * The second parameter from the FLEDGE spec (`duration`) is not yet
    * supported.
    *
@@ -138,7 +143,12 @@ export class FledgeShim {
   joinAdInterestGroup(group: InterestGroup): void {
     const messageData = messageDataFromRequest({
       kind: RequestKind.JOIN_AD_INTEREST_GROUP,
-      group,
+      group: {
+        ...group,
+        trustedBiddingSignalsUrl: absoluteTrustedSignalsUrl(
+          group.trustedBiddingSignalsUrl
+        ),
+      },
     });
     void this.getState().portPromise.then(
       (port) => {

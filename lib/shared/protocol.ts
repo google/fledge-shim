@@ -47,11 +47,17 @@ export function requestFromMessageData(
   const [kind] = messageData;
   switch (kind) {
     case RequestKind.JOIN_AD_INTEREST_GROUP: {
-      if (messageData.length !== 3) {
+      if (messageData.length !== 4) {
         return null;
       }
-      const [, name, adsMessageData] = messageData;
-      if (typeof name !== "string") {
+      const [, name, trustedBiddingSignalsUrl, adsMessageData] = messageData;
+      if (
+        !(
+          typeof name === "string" &&
+          (trustedBiddingSignalsUrl === undefined ||
+            typeof trustedBiddingSignalsUrl === "string")
+        )
+      ) {
         return null;
       }
       let ads;
@@ -72,7 +78,7 @@ export function requestFromMessageData(
       } else if (adsMessageData !== undefined) {
         return null;
       }
-      return { kind, group: { name, ads } };
+      return { kind, group: { name, trustedBiddingSignalsUrl, ads } };
     }
     case RequestKind.LEAVE_AD_INTEREST_GROUP: {
       if (messageData.length !== 2) {
@@ -110,11 +116,12 @@ export function messageDataFromRequest(request: FledgeRequest): unknown {
     case RequestKind.JOIN_AD_INTEREST_GROUP: {
       const {
         kind,
-        group: { name, ads },
+        group: { name, trustedBiddingSignalsUrl, ads },
       } = request;
       return [
         kind,
         name,
+        trustedBiddingSignalsUrl,
         ads?.map(({ renderingUrl, metadata: { price } }) => [
           renderingUrl,
           price,
