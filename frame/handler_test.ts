@@ -35,7 +35,7 @@ describe("handleRequest", () => {
     [RequestKind.LEAVE_AD_INTEREST_GROUP, 0.02],
     [RequestKind.RUN_AD_AUCTION, []],
   ]) {
-    it(`should reply with error message to ${JSON.stringify(
+    it(`should throw and not reply to ${JSON.stringify(
       badInput
     )}`, async () => {
       const { port1: receiver, port2: sender } = new MessageChannel();
@@ -46,27 +46,7 @@ describe("handleRequest", () => {
           hostname
         )
       ).toBeRejectedWithError();
-      expect((await messageEventPromise).data).toBeFalse();
-    });
-
-    it(`should reply with error message on multiple ports to ${JSON.stringify(
-      badInput
-    )}`, async () => {
-      const { port1: receiver1, port2: sender1 } = new MessageChannel();
-      const messageEventPromise1 = awaitMessageToPort(receiver1);
-      const { port1: receiver2, port2: sender2 } = new MessageChannel();
-      const messageEventPromise2 = awaitMessageToPort(receiver2);
-      await expectAsync(
-        handleRequest(
-          new MessageEvent("message", {
-            data: badInput,
-            ports: [sender1, sender2],
-          }),
-          hostname
-        )
-      ).toBeRejectedWithError();
-      expect((await messageEventPromise1).data).toBeFalse();
-      expect((await messageEventPromise2).data).toBeFalse();
+      await expectAsync(messageEventPromise).toBePending();
     });
   }
 
