@@ -62,15 +62,12 @@ export async function handleRequest(
           throw new Error("IndexedDB error");
         }
         port.postMessage(response);
-        port.close();
         return;
       }
     }
-  } catch (error: unknown) {
-    const response: RunAdAuctionResponse = false;
+  } finally {
     for (const port of ports) {
-      port.postMessage(response);
+      port.close();
     }
-    throw error;
   }
 }
