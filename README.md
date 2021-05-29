@@ -1,8 +1,8 @@
 # FLEDGE Shim
 
 We're building a pure-JavaScript implementation of the
-[FLEDGE spec](https://github.com/WICG/turtledove/blob/master/FLEDGE.md), on top
-of existing browser APIs. The goal is to allow testing as much of FLEDGE as
+[FLEDGE proposal](https://github.com/WICG/turtledove/blob/master/FLEDGE.md), on
+top of existing browser APIs. The goal is to allow testing as much of FLEDGE as
 possible, in as realistic a manner as possible, given the constraint of not
 being able to add new features to the browser itself.
 
@@ -33,7 +33,7 @@ translates the API from functions to messages.
 ## API
 
 We're planning to implement the API as closely as possible to what is presented
-in the spec, but some aspects necessarily differ due to the constraints of
+in the explainer, but some aspects necessarily differ due to the constraints of
 running on publisher and advertiser pages, and implementing without browser
 changes.
 
@@ -109,14 +109,14 @@ same page that called `runAdAuction`.
 
 #### Buyer and Seller Logic
 
-The spec allows buyers and sellers to provide custom JavaScript (`generate_bid`,
-`score_ad`) which will have access to interest group information. That access is
-compatible with the privacy model, because these worklets are heavily locked
-down, have no network access, and operate as pure functions. We are not aware of
-any secure way to execute arbitrary JavaScript while protecting information from
-exfiltration. Initially, we are planning to require buyers and sellers to check
-their logic into this repo. Later, we may be able to use Web Assembly or
-something custom to avoid that requirement.
+The proposal allows buyers and sellers to provide custom JavaScript
+(`generate_bid`, `score_ad`) which will have access to interest group
+information. That access is compatible with the privacy model, because these
+worklets are heavily locked down, have no network access, and operate as pure
+functions. We are not aware of any secure way to execute arbitrary JavaScript
+while protecting information from exfiltration. Initially, we are planning to
+require buyers and sellers to check their logic into this repo. Later, we may be
+able to use Web Assembly or something custom to avoid that requirement.
 
 Users may wish to test FLEDGE in circumstances where the privacy guarantees are
 not necessary, such as internal end-to-end testing. We will probably build

@@ -134,7 +134,7 @@ export class FledgeShim {
    * `trustedBiddingSignalsUrl` of an existing interest group with `undefined`
    * without deleting the entire interest group.
    *
-   * The second parameter from the FLEDGE spec (`duration`) is not yet
+   * The second parameter from the FLEDGE explainer (`duration`) is not yet
    * supported.
    *
    * @see {@link InterestGroup} for further behavioral notes.
