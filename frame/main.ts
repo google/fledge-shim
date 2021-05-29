@@ -44,12 +44,12 @@ function connect(targetWindow: Window, targetOrigin: string) {
 
 function render(doc: Document, fragment: string) {
   const token = fragment.substring(1);
-  const renderingUrl = sessionStorage.getItem(token);
-  if (!renderingUrl) {
+  const renderUrl = sessionStorage.getItem(token);
+  if (!renderUrl) {
     throw new Error(`Invalid token: ${token}`);
   }
   const iframe = doc.createElement("iframe");
-  iframe.src = renderingUrl;
+  iframe.src = renderUrl;
   iframe.scrolling = "no";
   iframe.style.border = "none";
   iframe.style.width =

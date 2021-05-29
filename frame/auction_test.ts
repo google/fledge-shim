@@ -19,17 +19,17 @@ describe("runAdAuction", () => {
   clearStorageBeforeAndAfter();
 
   const name = "interest group name";
-  const ad1 = { renderingUrl: "about:blank#1", metadata: { price: 0.01 } };
-  const ad2 = { renderingUrl: "about:blank#2", metadata: { price: 0.02 } };
-  const ad3 = { renderingUrl: "about:blank#3", metadata: { price: 0.03 } };
-  const ad4 = { renderingUrl: "about:blank#4", metadata: { price: 0.04 } };
+  const ad1 = { renderUrl: "about:blank#1", metadata: { price: 0.01 } };
+  const ad2 = { renderUrl: "about:blank#2", metadata: { price: 0.02 } };
+  const ad3 = { renderUrl: "about:blank#3", metadata: { price: 0.03 } };
+  const ad4 = { renderUrl: "about:blank#4", metadata: { price: 0.04 } };
   const hostname = "www.example.com";
 
   it("should return the higher-priced ad from a single interest group", async () => {
     expect(await storeInterestGroup({ name, ads: [ad1, ad2] })).toBeTrue();
     const token = await runAdAuction({}, hostname);
     assertToBeString(token);
-    expect(sessionStorage.getItem(token)).toBe(ad2.renderingUrl);
+    expect(sessionStorage.getItem(token)).toBe(ad2.renderUrl);
   });
 
   it("should return the higher-priced ad across multiple interest groups", async () => {
@@ -41,7 +41,7 @@ describe("runAdAuction", () => {
     ).toBeTrue();
     const token = await runAdAuction({}, hostname);
     assertToBeString(token);
-    expect(sessionStorage.getItem(token)).toBe(ad2.renderingUrl);
+    expect(sessionStorage.getItem(token)).toBe(ad2.renderUrl);
   });
 
   it("should return true if there are no ads", async () => {

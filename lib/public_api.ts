@@ -10,7 +10,11 @@
  */
 
 import { awaitConnectionFromIframe } from "./connection";
-import { Ad, AuctionAdConfig, InterestGroup } from "./shared/api_types";
+import {
+  AuctionAd,
+  AuctionAdConfig,
+  AuctionAdInterestGroup,
+} from "./shared/api_types";
 import { awaitMessageToPort } from "./shared/messaging";
 import {
   isRunAdAuctionResponse,
@@ -19,7 +23,7 @@ import {
 } from "./shared/protocol";
 
 export { VERSION } from "./shared/version";
-export { Ad, AuctionAdConfig, InterestGroup };
+export { AuctionAd, AuctionAdConfig, AuctionAdInterestGroup };
 
 /**
  * A class whose instance methods correspond to the APIs exposed by FLEDGE.
@@ -140,7 +144,7 @@ export class FledgeShim {
    * @see {@link InterestGroup} for further behavioral notes.
    * @see https://github.com/WICG/turtledove/blob/main/FLEDGE.md#11-joining-interest-groups
    */
-  joinAdInterestGroup(group: InterestGroup): void {
+  joinAdInterestGroup(group: AuctionAdInterestGroup): void {
     const messageData = messageDataFromRequest({
       kind: RequestKind.JOIN_AD_INTEREST_GROUP,
       group: {
@@ -168,7 +172,7 @@ export class FledgeShim {
    * @see {@link InterestGroup} for behavioral notes.
    * @see https://github.com/WICG/turtledove/blob/main/FLEDGE.md#11-joining-interest-groups
    */
-  leaveAdInterestGroup(group: InterestGroup): void {
+  leaveAdInterestGroup(group: AuctionAdInterestGroup): void {
     const messageData = messageDataFromRequest({
       kind: RequestKind.LEAVE_AD_INTEREST_GROUP,
       group,

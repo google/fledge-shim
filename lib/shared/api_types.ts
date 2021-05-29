@@ -17,12 +17,12 @@
  * present; they are our best guess as to how this will work, and may be
  * replaced later with a different API.
  */
-export interface Ad {
+export interface AuctionAd {
   /**
    * The URL where the actual creative is hosted. This will be used as the `src`
    * of an iframe that will appear on the page if this ad wins.
    */
-  renderingUrl: string;
+  renderUrl: string;
   /** Additional metadata about this ad that can be read by the auction. */
   metadata: {
     /**
@@ -52,7 +52,7 @@ export interface Ad {
  *
  * @see https://github.com/WICG/turtledove/blob/main/FLEDGE.md#1-browsers-record-interest-groups
  */
-export interface InterestGroup {
+export interface AuctionAdInterestGroup {
   /**
    * A name that uniquely identifies this interest group within the browser,
    * that can be used to refer to it in order to update or delete it later.
@@ -67,7 +67,7 @@ export interface InterestGroup {
    * Ads to be entered into the auction for impressions that this interest group
    * is permitted to bid on.
    */
-  ads?: Ad[];
+  ads?: AuctionAd[];
 }
 
 /**

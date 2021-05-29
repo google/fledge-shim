@@ -11,7 +11,7 @@ import {
   FakeServerHandler,
   setFakeServerHandler,
 } from "../testing/http";
-import { create, renderingUrlFromAuctionResult } from "../testing/public_api";
+import { create, renderUrlFromAuctionResult } from "../testing/public_api";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
 import { FledgeShim } from "./public_api";
 
@@ -61,45 +61,45 @@ describe("FledgeShim", () => {
 
     it("should return a single ad", async () => {
       const fledgeShim = create();
-      const renderingUrl = "about:blank";
+      const renderUrl = "about:blank";
       fledgeShim.joinAdInterestGroup({
         name,
-        ads: [{ renderingUrl, metadata: { price: 0.02 } }],
+        ads: [{ renderUrl, metadata: { price: 0.02 } }],
       });
       const token = await fledgeShim.runAdAuction({});
       assertToBeTruthy(token);
-      expect(await renderingUrlFromAuctionResult(token)).toBe(renderingUrl);
+      expect(await renderUrlFromAuctionResult(token)).toBe(renderUrl);
     });
 
     it("should return the higher-priced ad from a single interest group", async () => {
       const fledgeShim = create();
-      const renderingUrl = "about:blank#1";
+      const renderUrl = "about:blank#1";
       fledgeShim.joinAdInterestGroup({
         name,
         ads: [
-          { renderingUrl: "about:blank#2", metadata: { price: 0.01 } },
-          { renderingUrl, metadata: { price: 0.02 } },
+          { renderUrl: "about:blank#2", metadata: { price: 0.01 } },
+          { renderUrl, metadata: { price: 0.02 } },
         ],
       });
       const token = await fledgeShim.runAdAuction({});
       assertToBeTruthy(token);
-      expect(await renderingUrlFromAuctionResult(token)).toBe(renderingUrl);
+      expect(await renderUrlFromAuctionResult(token)).toBe(renderUrl);
     });
 
     it("should return the higher-priced ad across multiple interest groups", async () => {
       const fledgeShim = create();
-      const renderingUrl = "about:blank#1";
+      const renderUrl = "about:blank#1";
       fledgeShim.joinAdInterestGroup({
         name: "interest group 1",
-        ads: [{ renderingUrl: "about:blank#2", metadata: { price: 0.01 } }],
+        ads: [{ renderUrl: "about:blank#2", metadata: { price: 0.01 } }],
       });
       fledgeShim.joinAdInterestGroup({
         name: "interest group 2",
-        ads: [{ renderingUrl, metadata: { price: 0.02 } }],
+        ads: [{ renderUrl, metadata: { price: 0.02 } }],
       });
       const token = await fledgeShim.runAdAuction({});
       assertToBeTruthy(token);
-      expect(await renderingUrlFromAuctionResult(token)).toBe(renderingUrl);
+      expect(await renderUrlFromAuctionResult(token)).toBe(renderUrl);
     });
 
     const trustedBiddingSignalsUrl = "https://trusted-server.test/bidding";
@@ -110,7 +110,7 @@ describe("FledgeShim", () => {
       fledgeShim.joinAdInterestGroup({
         name: "interest group 1",
         trustedBiddingSignalsUrl,
-        ads: [{ renderingUrl: "about:blank", metadata: { price: 0.02 } }],
+        ads: [{ renderUrl: "about:blank", metadata: { price: 0.02 } }],
       });
       const fakeServerHandler = jasmine
         .createSpy<FakeServerHandler>()
@@ -171,10 +171,10 @@ describe("FledgeShim", () => {
   describe("joinAdInterestGroup", () => {
     it("should overwrite old property values with new ones", async () => {
       const fledgeShim = create();
-      const renderingUrl = "about:blank";
+      const renderUrl = "about:blank";
       fledgeShim.joinAdInterestGroup({
         name,
-        ads: [{ renderingUrl, metadata: { price: 0.02 } }],
+        ads: [{ renderUrl, metadata: { price: 0.02 } }],
       });
       fledgeShim.joinAdInterestGroup({
         name,
@@ -185,10 +185,10 @@ describe("FledgeShim", () => {
 
     it("should not overwrite old property values with undefined ones", async () => {
       const fledgeShim = create();
-      const renderingUrl = "about:blank";
+      const renderUrl = "about:blank";
       fledgeShim.joinAdInterestGroup({
         name,
-        ads: [{ renderingUrl, metadata: { price: 0.02 } }],
+        ads: [{ renderUrl, metadata: { price: 0.02 } }],
       });
       fledgeShim.joinAdInterestGroup({
         name,
@@ -196,7 +196,7 @@ describe("FledgeShim", () => {
       });
       const token = await fledgeShim.runAdAuction({});
       assertToBeTruthy(token);
-      expect(await renderingUrlFromAuctionResult(token)).toBe(renderingUrl);
+      expect(await renderUrlFromAuctionResult(token)).toBe(renderUrl);
     });
   });
 
@@ -205,7 +205,7 @@ describe("FledgeShim", () => {
       const fledgeShim = create();
       fledgeShim.joinAdInterestGroup({
         name,
-        ads: [{ renderingUrl: "about:blank", metadata: { price: 0.02 } }],
+        ads: [{ renderUrl: "about:blank", metadata: { price: 0.02 } }],
       });
       fledgeShim.leaveAdInterestGroup({ name });
       expect(await fledgeShim.runAdAuction({})).toBeNull();

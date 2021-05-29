@@ -35,13 +35,13 @@ afterEach(() => {
 });
 
 /**
- * Given a string returned from `runAdAuction`, returns the `renderingUrl` of
- * the winning ad. Note that this is only possible because the frame served by
- * Karma is same-origin to the page where the tests run; browser-native
+ * Given a string returned from `runAdAuction`, returns the `renderUrl` of the
+ * winning ad. Note that this is only possible because the frame served by Karma
+ * is same-origin to the page where the tests run; browser-native
  * implementations will not allow this, nor is it possible in production with
  * the shim when using a frame on a different origin from the publisher page.
  */
-export async function renderingUrlFromAuctionResult(
+export async function renderUrlFromAuctionResult(
   auctionResultUrl: string
 ): Promise<string> {
   const outerIframe = document.createElement("iframe");

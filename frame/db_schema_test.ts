@@ -25,7 +25,7 @@ describe("db_schema:", () => {
       const group = {
         name,
         trustedBiddingSignalsUrl,
-        ads: [{ renderingUrl: "about:blank", metadata: { price: 0.02 } }],
+        ads: [{ renderUrl: "about:blank", metadata: { price: 0.02 } }],
       };
       expect(await storeInterestGroup(group)).toBeTrue();
       const callback = jasmine.createSpy<InterestGroupCallback>();
@@ -62,7 +62,7 @@ describe("db_schema:", () => {
       expect(callback).toHaveBeenCalledWith({
         name: "interest group name 1",
         trustedBiddingSignalsUrl,
-        ads: [{ renderingUrl: "about:blank#1", metadata: { price: 0.01 } }],
+        ads: [{ renderUrl: "about:blank#1", metadata: { price: 0.01 } }],
       });
       expect(callback).toHaveBeenCalledWith({
         name: "interest group name 2",
@@ -73,8 +73,8 @@ describe("db_schema:", () => {
         name: "interest group name 3",
         trustedBiddingSignalsUrl: undefined,
         ads: [
-          { renderingUrl: "about:blank#2", metadata: { price: 0.02 } },
-          { renderingUrl: "about:blank#3", metadata: { price: 0.03 } },
+          { renderUrl: "about:blank#2", metadata: { price: 0.02 } },
+          { renderUrl: "about:blank#3", metadata: { price: 0.03 } },
         ],
       });
     });
@@ -85,7 +85,7 @@ describe("db_schema:", () => {
       const group = {
         name,
         trustedBiddingSignalsUrl,
-        ads: [{ renderingUrl: "about:blank", metadata: { price: 0.02 } }],
+        ads: [{ renderUrl: "about:blank", metadata: { price: 0.02 } }],
       };
       expect(await storeInterestGroup(group)).toBeTrue();
       const callback = jasmine.createSpy<InterestGroupCallback>();
@@ -109,14 +109,14 @@ describe("db_schema:", () => {
         await storeInterestGroup({
           name,
           trustedBiddingSignalsUrl: "https://trusted-server-1.test/bidding",
-          ads: [{ renderingUrl: "about:blank#1", metadata: { price: 0.01 } }],
+          ads: [{ renderUrl: "about:blank#1", metadata: { price: 0.01 } }],
         })
       ).toBeTrue();
       expect(
         await storeInterestGroup({
           name,
           trustedBiddingSignalsUrl: "https://trusted-server-2.test/bidding",
-          ads: [{ renderingUrl: "about:blank#2", metadata: { price: 0.02 } }],
+          ads: [{ renderUrl: "about:blank#2", metadata: { price: 0.02 } }],
         })
       ).toBeTrue();
       const callback = jasmine.createSpy<InterestGroupCallback>();
@@ -124,7 +124,7 @@ describe("db_schema:", () => {
       expect(callback).toHaveBeenCalledOnceWith({
         name,
         trustedBiddingSignalsUrl: "https://trusted-server-2.test/bidding",
-        ads: [{ renderingUrl: "about:blank#2", metadata: { price: 0.02 } }],
+        ads: [{ renderUrl: "about:blank#2", metadata: { price: 0.02 } }],
       });
     });
 
@@ -133,7 +133,7 @@ describe("db_schema:", () => {
         await storeInterestGroup({
           name,
           trustedBiddingSignalsUrl: "https://trusted-server-1.test/bidding",
-          ads: [{ renderingUrl: "about:blank#1", metadata: { price: 0.01 } }],
+          ads: [{ renderUrl: "about:blank#1", metadata: { price: 0.01 } }],
         })
       ).toBeTrue();
       expect(
@@ -147,7 +147,7 @@ describe("db_schema:", () => {
       expect(callback).toHaveBeenCalledOnceWith({
         name,
         trustedBiddingSignalsUrl: "https://trusted-server-2.test/bidding",
-        ads: [{ renderingUrl: "about:blank#1", metadata: { price: 0.01 } }],
+        ads: [{ renderUrl: "about:blank#1", metadata: { price: 0.01 } }],
       });
     });
   });
@@ -158,14 +158,14 @@ describe("db_schema:", () => {
         await storeInterestGroup({
           name: "interest group name 1",
           trustedBiddingSignalsUrl: "https://trusted-server-1.test/bidding",
-          ads: [{ renderingUrl: "about:blank#1", metadata: { price: 0.01 } }],
+          ads: [{ renderUrl: "about:blank#1", metadata: { price: 0.01 } }],
         })
       ).toBeTrue();
       expect(
         await storeInterestGroup({
           name: "interest group name 2",
           trustedBiddingSignalsUrl: "https://trusted-server-2.test/bidding",
-          ads: [{ renderingUrl: "about:blank#2", metadata: { price: 0.02 } }],
+          ads: [{ renderUrl: "about:blank#2", metadata: { price: 0.02 } }],
         })
       ).toBeTrue();
       expect(await deleteInterestGroup("interest group name 2")).toBeTrue();
@@ -174,7 +174,7 @@ describe("db_schema:", () => {
       expect(callback).toHaveBeenCalledOnceWith({
         name: "interest group name 1",
         trustedBiddingSignalsUrl: "https://trusted-server-1.test/bidding",
-        ads: [{ renderingUrl: "about:blank#1", metadata: { price: 0.01 } }],
+        ads: [{ renderUrl: "about:blank#1", metadata: { price: 0.01 } }],
       });
     });
 
