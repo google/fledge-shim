@@ -5,11 +5,13 @@
  */
 
 import { assertToBeInstanceOf } from "../testing/assert";
+import { restoreErrorHandlerAfterEach } from "../testing/error";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
 import { useStore } from "./indexeddb";
 
 describe("useStore", () => {
   clearStorageBeforeAndAfter();
+  restoreErrorHandlerAfterEach();
 
   const value = "IndexedDB value";
   const key = "IndexedDB key";
@@ -66,6 +68,36 @@ describe("useStore", () => {
       })
     ).toBeTrue();
     expect(consoleSpy.error).not.toHaveBeenCalled();
+  });
+
+  it("should not commit the transaction if a request callback throws", async () => {
+    const errorHandler = (onerror =
+      jasmine.createSpy<OnErrorEventHandlerNonNull>("onerror"));
+    const consoleSpy = spyOnAllFunctions(console);
+    const error = new Error("oops");
+    expect(
+      await useStore("readwrite", (store) => {
+        store.add(value, key).onsuccess = () => {
+          throw error;
+        };
+      })
+    ).toBeFalse();
+    expect(errorHandler).toHaveBeenCalledOnceWith(
+      "Uncaught Error: oops",
+      jasmine.any(String),
+      jasmine.any(Number),
+      jasmine.any(Number),
+      error
+    );
+    await useStore("readonly", (store) => {
+      const retrievalRequest = store.count();
+      retrievalRequest.onsuccess = () => {
+        expect(retrievalRequest.result).toBe(0);
+      };
+    });
+    // This isn't particularly desired, but we can't disable it without risking
+    // not logging illegal operations.
+    expect(consoleSpy.error).toHaveBeenCalledOnceWith(jasmine.any(String));
   });
 
   const otherValue = "other IndexedDB value";
