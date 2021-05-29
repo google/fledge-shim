@@ -54,25 +54,20 @@ export async function handleRequest(
           );
         }
         const [port] = ports;
-        const result = await runAdAuction(request.config, hostname);
-        let token;
-        switch (result) {
-          case true:
-            token = null;
-            break;
-          case false:
-            throw new Error("IndexedDB error");
-          default:
-            token = result;
+        const response: RunAdAuctionResponse = await runAdAuction(
+          request.config,
+          hostname
+        );
+        if (response === false) {
+          throw new Error("IndexedDB error");
         }
-        const response: RunAdAuctionResponse = [true, token];
         port.postMessage(response);
         port.close();
         return;
       }
     }
   } catch (error: unknown) {
-    const response: RunAdAuctionResponse = [false];
+    const response: RunAdAuctionResponse = false;
     for (const port of ports) {
       port.postMessage(response);
     }

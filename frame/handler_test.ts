@@ -10,9 +10,8 @@ import {
   isRunAdAuctionResponse,
   messageDataFromRequest,
   RequestKind,
-  RunAdAuctionResponse,
 } from "../lib/shared/protocol";
-import { assertToBeTruthy, assertToSatisfyTypeGuard } from "../testing/assert";
+import { assertToBeString, assertToSatisfyTypeGuard } from "../testing/assert";
 import {
   FakeRequest,
   FakeServerHandler,
@@ -36,8 +35,6 @@ describe("handleRequest", () => {
     [RequestKind.LEAVE_AD_INTEREST_GROUP, 0.02],
     [RequestKind.RUN_AD_AUCTION, []],
   ]) {
-    const errorResponse: RunAdAuctionResponse = [false];
-
     it(`should reply with error message to ${JSON.stringify(
       badInput
     )}`, async () => {
@@ -49,7 +46,7 @@ describe("handleRequest", () => {
           hostname
         )
       ).toBeRejectedWithError();
-      expect((await messageEventPromise).data).toEqual(errorResponse);
+      expect((await messageEventPromise).data).toBeFalse();
     });
 
     it(`should reply with error message on multiple ports to ${JSON.stringify(
@@ -68,8 +65,8 @@ describe("handleRequest", () => {
           hostname
         )
       ).toBeRejectedWithError();
-      expect((await messageEventPromise1).data).toEqual(errorResponse);
-      expect((await messageEventPromise2).data).toEqual(errorResponse);
+      expect((await messageEventPromise1).data).toBeFalse();
+      expect((await messageEventPromise2).data).toBeFalse();
     });
   }
 
@@ -160,9 +157,8 @@ describe("handleRequest", () => {
     );
     const { data } = await messageEventPromise;
     assertToSatisfyTypeGuard(data, isRunAdAuctionResponse);
-    assertToBeTruthy(data[0]);
-    assertToBeTruthy(data[1]);
-    expect(sessionStorage.getItem(data[1])).toBe(renderingUrl);
+    assertToBeString(data);
+    expect(sessionStorage.getItem(data)).toBe(renderingUrl);
     expect(fakeServerHandler).toHaveBeenCalledTimes(2);
     expect(fakeServerHandler).toHaveBeenCalledWith(
       jasmine.objectContaining<FakeRequest>({

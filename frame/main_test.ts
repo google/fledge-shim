@@ -15,7 +15,11 @@ import {
   RequestKind,
 } from "../lib/shared/protocol";
 import { VERSION, VERSION_KEY } from "../lib/shared/version";
-import { assertToBeTruthy, assertToSatisfyTypeGuard } from "../testing/assert";
+import {
+  assertToBeString,
+  assertToBeTruthy,
+  assertToSatisfyTypeGuard,
+} from "../testing/assert";
 import { cleanDomAfterEach } from "../testing/dom";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
 import { main } from "./main";
@@ -53,9 +57,8 @@ describe("main", () => {
     );
     const { data: auctionResponse } = await auctionMessageEventPromise;
     assertToSatisfyTypeGuard(auctionResponse, isRunAdAuctionResponse);
-    assertToBeTruthy(auctionResponse[0]);
-    assertToBeTruthy(auctionResponse[1]);
-    expect(sessionStorage.getItem(auctionResponse[1])).toBe(renderingUrl);
+    assertToBeString(auctionResponse);
+    expect(sessionStorage.getItem(auctionResponse)).toBe(renderingUrl);
   });
 
   const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";

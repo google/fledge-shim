@@ -237,11 +237,14 @@ export class FledgeShim {
           )}`
         );
       }
-      if (!data[0]) {
-        throw new Error("Error occurred in frame; see console for details");
+      switch (data) {
+        case true:
+          return null;
+        case false:
+          throw new Error("Error occurred in frame; see console for details");
+        default:
+          return frameSrc + "#" + data;
       }
-      const [, token] = data;
-      return token === null ? null : frameSrc + "#" + token;
     } finally {
       receiver.close();
     }
