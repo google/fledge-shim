@@ -53,12 +53,12 @@ export class FledgeShim {
    * codebase as this library.
    */
   constructor(frameSrc: string) {
-    const frameUrl = new URL(frameSrc, document.baseURI);
+    const frameUrl = absoluteUrl(frameSrc);
     if (!/^https?:$/.test(frameUrl.protocol)) {
-      throw new Error("frameSrc must be a http: or https: URL");
+      throw new Error("Only http: or https: URLs allowed: " + frameSrc);
     }
     if (frameUrl.hash || frameSrc.endsWith("#")) {
-      throw new Error("frameSrc must not have a fragment");
+      throw new Error("URL fragment not allowed: " + frameSrc);
     }
     const iframe = document.createElement("iframe");
     iframe.src = frameSrc;

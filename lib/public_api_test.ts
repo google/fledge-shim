@@ -13,9 +13,38 @@ import {
 } from "../testing/http";
 import { create, renderingUrlFromAuctionResult } from "../testing/public_api";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
+import { FledgeShim } from "./public_api";
 
 describe("FledgeShim", () => {
   clearStorageBeforeAndAfter();
+
+  describe("constructor", () => {
+    it("should throw on an ill-formed URL", () => {
+      expect(() => {
+        new FledgeShim("//not:valid");
+      }).toThrowError(/.*\/\/not:valid.*/);
+    });
+
+    it("should throw on a non-HTTP URL", () => {
+      expect(() => {
+        new FledgeShim("data:text/html,<!DOCTYPE html><title>Page</title>");
+      }).toThrowError(
+        /.*data:text\/html,<!DOCTYPE html><title>Page<\/title>.*/
+      );
+    });
+
+    it("should throw on a URL with a fragment", () => {
+      expect(() => {
+        new FledgeShim("/frame.html#fragment");
+      }).toThrowError(/.*\/frame\.html#fragment.*/);
+    });
+
+    it("should throw on a URL with an empty fragment", () => {
+      expect(() => {
+        new FledgeShim("/frame.html#");
+      }).toThrowError(/.*\/frame\.html#.*/);
+    });
+  });
 
   const name = "interest group name";
 
@@ -115,12 +144,28 @@ describe("FledgeShim", () => {
       expect(fakeServerHandler).not.toHaveBeenCalled();
     });
 
+    it("should reject on an ill-formed URL", () =>
+      expectAsync(
+        create().runAdAuction({
+          trustedScoringSignalsUrl: "This string is not a URL.",
+        })
+      ).toBeRejectedWithError(/.*This string is not a URL\..*/));
+
     it("should reject on a non-HTTPS URL", () =>
       expectAsync(
         create().runAdAuction({
           trustedScoringSignalsUrl: "http://insecure-server.test/scoring",
         })
-      ).toBeRejectedWithError());
+      ).toBeRejectedWithError(/.*http:\/\/insecure-server\.test\/scoring.*/));
+
+    it("should reject on a URL with a query string", () =>
+      expectAsync(
+        create().runAdAuction({
+          trustedScoringSignalsUrl: trustedScoringSignalsUrl + "?key=value",
+        })
+      ).toBeRejectedWithError(
+        /.*https:\/\/trusted-server\.test\/scoring\?key=value.*/
+      ));
   });
 
   describe("joinAdInterestGroup", () => {
