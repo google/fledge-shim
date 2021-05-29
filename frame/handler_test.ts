@@ -21,12 +21,14 @@ import {
   FakeServerHandler,
   setFakeServerHandler,
 } from "../testing/http";
+import { addMessagePortMatchers } from "../testing/messaging";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
 import { forEachInterestGroup, InterestGroupCallback } from "./db_schema";
 import { handleRequest } from "./handler";
 
 describe("handleRequest", () => {
   clearStorageBeforeAndAfter();
+  beforeAll(addMessagePortMatchers);
 
   const hostname = "www.example.com";
 
@@ -39,20 +41,49 @@ describe("handleRequest", () => {
     [RequestKind.LEAVE_AD_INTEREST_GROUP, 0.02],
     [RequestKind.RUN_AD_AUCTION, []],
   ]) {
-    it(`should throw and not reply to ${JSON.stringify(
+    it(`should log an error, close ports, and not reply to ${JSON.stringify(
       badInput
     )}`, async () => {
+      const consoleSpy = spyOnAllFunctions(console);
       const { port1: receiver, port2: sender } = new MessageChannel();
       const messageEventPromise = awaitMessageToPort(receiver);
-      await expectAsync(
-        handleRequest(
-          new MessageEvent("message", { data: badInput, ports: [sender] }),
-          hostname
-        )
-      ).toBeRejectedWithError();
+      await handleRequest(
+        new MessageEvent("message", { data: badInput, ports: [sender] }),
+        hostname
+      );
+      expect(consoleSpy.error).toHaveBeenCalledOnceWith(
+        jasmine.any(String),
+        badInput
+      );
+      await expectAsync(receiver).not.toBeEntangledWith(sender);
       await expectAsync(messageEventPromise).toBePending();
     });
   }
+
+  it("should log an error, close ports, and not reply on port transfer mismatch", async () => {
+    const consoleSpy = spyOnAllFunctions(console);
+    const channel = new MessageChannel();
+    const messageEventPromise = awaitMessageToPort(channel.port1);
+    const otherChannel = new MessageChannel();
+    await handleRequest(
+      new MessageEvent("message", {
+        data: messageDataFromRequest({
+          kind: RequestKind.RUN_AD_AUCTION,
+          config: {},
+        }),
+        ports: [channel.port2, otherChannel.port1, otherChannel.port2],
+      }),
+      hostname
+    );
+    expect(consoleSpy.error).toHaveBeenCalledOnceWith(
+      jasmine.stringMatching(/.*\b3\b.*/)
+    );
+    await expectAsync(channel.port1).not.toBeEntangledWith(channel.port2);
+    await expectAsync(otherChannel.port1).not.toBeEntangledWith(
+      otherChannel.port2
+    );
+    await expectAsync(messageEventPromise).toBePending();
+  });
 
   const name = "interest group name";
   const trustedBiddingSignalsUrl = "https://trusted-server.test/bidding";
@@ -162,5 +193,6 @@ describe("handleRequest", () => {
     );
     expect(consoleSpy.error).not.toHaveBeenCalled();
     expect(consoleSpy.warn).not.toHaveBeenCalled();
+    await expectAsync(receiver).not.toBeEntangledWith(sender);
   });
 });

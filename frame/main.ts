@@ -10,6 +10,7 @@
  */
 
 import { VERSION, VERSION_KEY } from "../lib/shared/version";
+import { logError } from "./console";
 import { handleRequest } from "./handler";
 
 /**
@@ -23,7 +24,8 @@ import { handleRequest } from "./handler";
 export function main(win: Window): void {
   const parentOrigin = win.location.ancestorOrigins[0];
   if (parentOrigin === undefined) {
-    throw new Error("Frame can't run as a top-level document");
+    logError("Frame can't run as a top-level document");
+    return;
   }
   const fragment = win.location.hash;
   if (fragment) {
@@ -43,10 +45,10 @@ function connect(targetWindow: Window, targetOrigin: string) {
 }
 
 function render(doc: Document, fragment: string) {
-  const token = fragment.substring(1);
-  const renderUrl = sessionStorage.getItem(token);
+  const renderUrl = sessionStorage.getItem(fragment.substring(1));
   if (!renderUrl) {
-    throw new Error(`Invalid token: ${token}`);
+    logError("Invalid token:", [fragment]);
+    return;
   }
   const iframe = doc.createElement("iframe");
   iframe.src = renderUrl;
