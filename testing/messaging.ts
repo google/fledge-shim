@@ -45,7 +45,9 @@ export function addMessagePortMatchers(): void {
         expected.postMessage(payload);
         return {
           pass: await Promise.race([
-            messageEventPromise.then(({ data }) => data === payload),
+            messageEventPromise.then(
+              (event) => event !== null && event.data === payload
+            ),
             new Promise<false>((resolve) => {
               setTimeout(() => {
                 resolve(false);

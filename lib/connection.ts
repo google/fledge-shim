@@ -37,7 +37,11 @@ export async function awaitConnectionFromIframe(
   iframe: HTMLIFrameElement,
   expectedOrigin: string
 ): Promise<MessagePort> {
-  const { data, ports, origin } = await awaitMessageFromIframeToSelf(iframe);
+  const event = await awaitMessageFromIframeToSelf(iframe);
+  if (!event) {
+    throw new Error("Message deserialization error");
+  }
+  const { data, ports, origin } = event;
   if (origin !== expectedOrigin) {
     throw new Error(
       `Origin mismatch during handshake: expected ${expectedOrigin}, but received ${origin}`

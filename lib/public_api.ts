@@ -229,7 +229,11 @@ export class FledgeShim {
     try {
       const eventPromise = awaitMessageToPort(receiver);
       mainPort.postMessage(messageData, [sender]);
-      const { data } = await eventPromise;
+      const event = await eventPromise;
+      if (!event) {
+        throw new Error("Message deserialization error");
+      }
+      const { data } = event;
       if (!isRunAdAuctionResponse(data)) {
         throw new Error(
           `Malformed response: expected RunAdAuctionResponse, but received ${JSON.stringify(
