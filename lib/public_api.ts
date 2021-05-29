@@ -9,21 +9,20 @@
  * from here.
  */
 
-import { awaitConnectionFromIframe } from "./connection";
+import {
+  awaitConnectionFromIframe,
+  awaitRunAdAuctionResponseToPort,
+  ErrorWithData,
+} from "./connection";
 import {
   AuctionAd,
   AuctionAdConfig,
   AuctionAdInterestGroup,
 } from "./shared/api_types";
-import { awaitMessageToPort } from "./shared/messaging";
-import {
-  isRunAdAuctionResponse,
-  messageDataFromRequest,
-  RequestKind,
-} from "./shared/protocol";
+import { messageDataFromRequest, RequestKind } from "./shared/protocol";
 
 export { VERSION } from "./shared/version";
-export { AuctionAd, AuctionAdConfig, AuctionAdInterestGroup };
+export { AuctionAd, AuctionAdConfig, AuctionAdInterestGroup, ErrorWithData };
 
 /**
  * A class whose instance methods correspond to the APIs exposed by FLEDGE.
@@ -231,28 +230,10 @@ export class FledgeShim {
     const mainPort = await portPromise;
     const { port1: receiver, port2: sender } = new MessageChannel();
     try {
-      const eventPromise = awaitMessageToPort(receiver);
+      const tokenPromise = awaitRunAdAuctionResponseToPort(receiver);
       mainPort.postMessage(messageData, [sender]);
-      const event = await eventPromise;
-      if (!event) {
-        throw new Error("Message deserialization error");
-      }
-      const { data } = event;
-      if (!isRunAdAuctionResponse(data)) {
-        throw new Error(
-          `Malformed response: expected RunAdAuctionResponse, but received ${JSON.stringify(
-            data
-          )}`
-        );
-      }
-      switch (data) {
-        case true:
-          return null;
-        case false:
-          throw new Error("Error occurred in frame; see console for details");
-        default:
-          return frameSrc + "#" + data;
-      }
+      const token = await tokenPromise;
+      return token === null ? null : frameSrc + "#" + token;
     } finally {
       receiver.close();
     }

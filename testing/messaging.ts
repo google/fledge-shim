@@ -10,7 +10,11 @@
  */
 
 import "jasmine";
-import { awaitMessageToPort } from "../lib/shared/messaging";
+import {
+  awaitMessageFromIframeToSelf,
+  awaitMessageToPort,
+} from "../lib/shared/messaging";
+import { assertToBeTruthy } from "./assert";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -99,4 +103,51 @@ declare interface WithPostMessageTo {
     targetOrigin: string,
     transfer: Transferable[]
   ): void;
+}
+
+// Deliberately triggering a messageerror from test code is surprisingly tricky.
+// One thing that does it is attempting to send a WebAssembly module to a
+// different agent cluster; see
+// https://html.spec.whatwg.org/multipage/origin.html#origin-keyed-agent-clusters.
+// Sandboxing an iframe without allow-same-origin puts it in a different agent
+// cluster. The inline bytes are the binary encoding of the smallest legal
+// WebAssembly module; see
+// https://webassembly.github.io/spec/core/binary/modules.html#binary-module.
+
+/**
+ * Returns an iframe that, when attached to a document, sends a
+ * non-deserializable message via `postMessage` to that document's window,
+ * causing the `messageerror` event listener to fire on that window.
+ */
+export function iframeSendingPostMessageErrorToParent(): HTMLIFrameElement {
+  const iframe = document.createElement("iframe");
+  iframe.srcdoc =
+    "<!DOCTYPE html><title>Helper</title><script>parent.postMessage(new WebAssembly.Module(Uint8Array.of(0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x00, 0x00)), '*');</script>";
+  iframe.sandbox.add("allow-scripts");
+  return iframe;
+}
+
+/**
+ * Returns a `MessagePort` that, in a task immediately following the current
+ * one, receives a `messageerror` event. The caller must attach the event
+ * listener to the port in the same task after calling this function, or else
+ * the event will be missed.
+ */
+export async function portReceivingMessageError(): Promise<MessagePort> {
+  const iframe = document.createElement("iframe");
+  iframe.srcdoc =
+    "<!DOCTYPE html><title>Helper</title><script>const { port1, port2 } = new MessageChannel(); parent.postMessage(null, '*', [port1]); port2.postMessage(new WebAssembly.Module(Uint8Array.of(0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x00, 0x00)));</script>";
+  iframe.sandbox.add("allow-scripts");
+  const windowMessageEventPromise = awaitMessageFromIframeToSelf(iframe);
+  document.body.appendChild(iframe);
+  try {
+    const windowMessageEvent = await windowMessageEventPromise;
+    assertToBeTruthy(windowMessageEvent);
+    expect(windowMessageEvent.data).toBeNull();
+    expect(windowMessageEvent.origin).toBe("null");
+    expect(windowMessageEvent.ports).toHaveSize(1);
+    return windowMessageEvent.ports[0];
+  } finally {
+    iframe.remove();
+  }
 }

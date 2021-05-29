@@ -5,10 +5,12 @@
  */
 
 import "jasmine";
-import { assertToBeTruthy } from "./assert";
+import { assertToBeInstanceOf, assertToBeTruthy } from "./assert";
 import { cleanDomAfterEach } from "./dom";
 import {
   addMessagePortMatchers,
+  iframeSendingPostMessageErrorToParent,
+  portReceivingMessageError,
   postMessageFromIframeToSelf,
 } from "./messaging";
 
@@ -71,6 +73,37 @@ describe("testing/messaging:", () => {
       expect(() => {
         postMessageFromIframeToSelf(iframe, "message payload", []);
       }).toThrowError();
+    });
+  });
+
+  describe("iframeSendingPostMessageErrorToParent", () => {
+    it("should cause a deserialization failure on the current window", async () => {
+      addEventListener("message", fail);
+      try {
+        await new Promise((resolve) => {
+          addEventListener("messageerror", resolve, { once: true });
+          document.body.appendChild(iframeSendingPostMessageErrorToParent());
+        });
+      } finally {
+        removeEventListener("message", fail);
+      }
+    });
+  });
+
+  describe("portReceivingMessageError", () => {
+    it("should cause a deserialization failure on the port", async () => {
+      const port = await portReceivingMessageError();
+      await new Promise((resolve, reject) => {
+        port.onmessage = reject;
+        port.onmessageerror = resolve;
+      });
+    });
+
+    it("should clean up after itself", async () => {
+      const existingDom = document.documentElement.cloneNode(/* deep= */ true);
+      assertToBeInstanceOf(existingDom, HTMLHtmlElement);
+      await portReceivingMessageError();
+      expect(document.documentElement).toEqual(existingDom);
     });
   });
 });
