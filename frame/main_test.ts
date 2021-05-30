@@ -28,7 +28,7 @@ describe("main", () => {
   cleanDomAfterEach();
   clearStorageBeforeAndAfter();
 
-  const renderingUrl = "about:blank#ad";
+  const renderUrl = "about:blank#ad";
 
   it("should connect to parent window and handle requests from it", async () => {
     const iframe = document.createElement("iframe");
@@ -46,7 +46,7 @@ describe("main", () => {
         kind: RequestKind.JOIN_AD_INTEREST_GROUP,
         group: {
           name: "interest group name",
-          ads: [{ renderingUrl, metadata: { price: 0.02 } }],
+          ads: [{ renderUrl, metadata: { price: 0.02 } }],
         },
       })
     );
@@ -61,13 +61,13 @@ describe("main", () => {
     const { data: auctionResponse } = auctionMessageEvent;
     assertToSatisfyTypeGuard(auctionResponse, isRunAdAuctionResponse);
     assertToBeString(auctionResponse);
-    expect(sessionStorage.getItem(auctionResponse)).toBe(renderingUrl);
+    expect(sessionStorage.getItem(auctionResponse)).toBe(renderUrl);
   });
 
   const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
   it("should render an ad", () => {
-    sessionStorage.setItem(token, renderingUrl);
+    sessionStorage.setItem(token, renderUrl);
     const outerIframe = document.createElement("iframe");
     outerIframe.src = "about:blank#" + token;
     document.body.appendChild(outerIframe);
@@ -76,11 +76,11 @@ describe("main", () => {
     const innerIframe =
       outerIframe.contentWindow.document.querySelector("iframe");
     assertToBeTruthy(innerIframe);
-    expect(innerIframe.src).toBe(renderingUrl);
+    expect(innerIframe.src).toBe(renderUrl);
   });
 
   it("should render with the exact same dimensions as the outer iframe, with no borders or scrollbars", async () => {
-    sessionStorage.setItem(token, renderingUrl);
+    sessionStorage.setItem(token, renderUrl);
     const outerIframe = document.createElement("iframe");
     outerIframe.src = "about:blank#" + token;
     outerIframe.style.width = "123px";

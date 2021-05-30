@@ -56,8 +56,8 @@ describe("handleRequest", () => {
 
   const name = "interest group name";
   const trustedBiddingSignalsUrl = "https://trusted-server.test/bidding";
-  const renderingUrl = "about:blank";
-  const ads = [{ renderingUrl, metadata: { price: 0.02 } }];
+  const renderUrl = "about:blank";
+  const ads = [{ renderUrl, metadata: { price: 0.02 } }];
   const group = { name, trustedBiddingSignalsUrl, ads };
   const joinMessageEvent = new MessageEvent("message", {
     data: messageDataFromRequest({
@@ -144,7 +144,7 @@ describe("handleRequest", () => {
     const { data } = event;
     assertToSatisfyTypeGuard(data, isRunAdAuctionResponse);
     assertToBeString(data);
-    expect(sessionStorage.getItem(data)).toBe(renderingUrl);
+    expect(sessionStorage.getItem(data)).toBe(renderUrl);
     expect(fakeServerHandler).toHaveBeenCalledTimes(2);
     expect(fakeServerHandler).toHaveBeenCalledWith(
       jasmine.objectContaining<FakeRequest>({

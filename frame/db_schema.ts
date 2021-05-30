@@ -9,7 +9,7 @@
  * IndexedDB, with runtime type checking.
  */
 
-import { Ad, InterestGroup } from "../lib/shared/api_types";
+import { AuctionAd, AuctionAdInterestGroup } from "../lib/shared/api_types";
 import { isArray } from "../lib/shared/guards";
 import { logWarning } from "./console";
 import { useStore } from "./indexeddb";
@@ -21,7 +21,7 @@ import { useStore } from "./indexeddb";
 export interface CanonicalInterestGroup {
   name: string;
   trustedBiddingSignalsUrl: string | undefined;
-  ads: Ad[];
+  ads: AuctionAd[];
 }
 
 function interestGroupFromRecord(record: unknown, key: IDBValidKey) {
@@ -47,11 +47,11 @@ function interestGroupFromRecord(record: unknown, key: IDBValidKey) {
     if (!(isArray(adRecord) && adRecord.length === 2)) {
       return handleMalformedEntry();
     }
-    const [renderingUrl, price] = adRecord;
-    if (!(typeof renderingUrl === "string" && typeof price === "number")) {
+    const [renderUrl, price] = adRecord;
+    if (!(typeof renderUrl === "string" && typeof price === "number")) {
       return handleMalformedEntry();
     }
-    ads.push({ renderingUrl, metadata: { price } });
+    ads.push({ renderUrl, metadata: { price } });
   }
   return { name: key, trustedBiddingSignalsUrl, ads };
 }
@@ -60,8 +60,8 @@ function recordFromInterestGroup(group: CanonicalInterestGroup) {
   return [
     group.trustedBiddingSignalsUrl,
     group.ads
-      ? group.ads.map(({ renderingUrl, metadata: { price } }) => [
-          renderingUrl,
+      ? group.ads.map(({ renderUrl, metadata: { price } }) => [
+          renderUrl,
           price,
         ])
       : [],
@@ -76,7 +76,9 @@ function recordFromInterestGroup(group: CanonicalInterestGroup) {
  * there is no way to delete a property of an existing interest group without
  * overwriting it with a defined value or deleting the whole interest group.
  */
-export function storeInterestGroup(group: InterestGroup): Promise<boolean> {
+export function storeInterestGroup(
+  group: AuctionAdInterestGroup
+): Promise<boolean> {
   return useStore("readwrite", (store) => {
     const { name } = group;
     const cursorRequest = store.openCursor(name);

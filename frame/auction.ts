@@ -6,7 +6,7 @@
 
 /** @fileoverview Selection of ads, and creation of tokens to display them. */
 
-import { Ad, AuctionAdConfig } from "../lib/shared/api_types";
+import { AuctionAd, AuctionAdConfig } from "../lib/shared/api_types";
 import { isKeyValueObject } from "../lib/shared/guards";
 import { logWarning } from "./console";
 import { forEachInterestGroup } from "./db_schema";
@@ -40,16 +40,16 @@ export async function runAdAuction(
   { trustedScoringSignalsUrl }: AuctionAdConfig,
   hostname: string
 ): Promise<string | boolean> {
-  let winner: Ad | undefined;
+  let winner: AuctionAd | undefined;
   const trustedBiddingSignalsUrls = new Set<string>();
-  const renderingUrls = new Set<string>();
+  const renderUrls = new Set<string>();
   if (
     !(await forEachInterestGroup(({ trustedBiddingSignalsUrl, ads }) => {
       if (trustedBiddingSignalsUrl !== undefined && ads.length) {
         trustedBiddingSignalsUrls.add(trustedBiddingSignalsUrl);
       }
       for (const ad of ads) {
-        renderingUrls.add(ad.renderingUrl);
+        renderUrls.add(ad.renderUrl);
         if (!winner || ad.metadata.price > winner.metadata.price) {
           winner = ad;
         }
@@ -73,13 +73,13 @@ export async function runAdAuction(
       if (trustedScoringSignalsUrl !== undefined) {
         yield fetchAndValidateTrustedSignals(
           trustedScoringSignalsUrl,
-          `keys=${[...renderingUrls].map(encodeURIComponent).join(",")}`
+          `keys=${[...renderUrls].map(encodeURIComponent).join(",")}`
         );
       }
     })()
   );
   const token = randomToken();
-  sessionStorage.setItem(token, winner.renderingUrl);
+  sessionStorage.setItem(token, winner.renderUrl);
   return token;
 }
 

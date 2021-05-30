@@ -28,8 +28,8 @@ const requests: Array<{ request: FledgeRequest; messageData: unknown }> = [
         name: "interest group name",
         trustedBiddingSignalsUrl: "https://trusted-server.example/bidding",
         ads: [
-          { renderingUrl: "https://ad.example/1", metadata: { price: 0.02 } },
-          { renderingUrl: "https://ad.example/2", metadata: { price: 0.04 } },
+          { renderUrl: "https://ad.example/1", metadata: { price: 0.02 } },
+          { renderUrl: "https://ad.example/2", metadata: { price: 0.04 } },
         ],
       },
     },
@@ -200,8 +200,8 @@ describe("messageDataFromRequest", () => {
           name: "interest group name",
           trustedBiddingSignalsUrl: "https://trusted-server.example/bidding",
           ads: [
-            { renderingUrl: "https://ad.example/1", metadata: { price: 0.02 } },
-            { renderingUrl: "https://ad.example/2", metadata: { price: 0.04 } },
+            { renderUrl: "https://ad.example/1", metadata: { price: 0.02 } },
+            { renderUrl: "https://ad.example/2", metadata: { price: 0.04 } },
           ],
         },
       })

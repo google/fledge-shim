@@ -7,7 +7,7 @@
 import "jasmine";
 import { FledgeShim } from "../lib/public_api";
 import { assertToBeInstanceOf } from "./assert";
-import { create, renderingUrlFromAuctionResult } from "./public_api";
+import { create, renderUrlFromAuctionResult } from "./public_api";
 import { clearStorageBeforeAndAfter } from "./storage";
 
 describe("create", () => {
@@ -26,24 +26,24 @@ describe("create", () => {
   });
 });
 
-describe("renderingUrlFromAuctionResult", () => {
+describe("renderUrlFromAuctionResult", () => {
   clearStorageBeforeAndAfter();
 
   const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-  const renderingUrl = "about:blank#ad";
+  const renderUrl = "about:blank#ad";
 
   it("should return the rendering URL from an auction result", async () => {
-    sessionStorage.setItem(token, renderingUrl);
-    expect(await renderingUrlFromAuctionResult("/frame.html#" + token)).toBe(
-      renderingUrl
+    sessionStorage.setItem(token, renderUrl);
+    expect(await renderUrlFromAuctionResult("/frame.html#" + token)).toBe(
+      renderUrl
     );
   });
 
   it("should clean up after itself", async () => {
-    sessionStorage.setItem(token, renderingUrl);
+    sessionStorage.setItem(token, renderUrl);
     const existingDom = document.documentElement.cloneNode(/* deep= */ true);
     assertToBeInstanceOf(existingDom, HTMLHtmlElement);
-    await renderingUrlFromAuctionResult("/frame.html#" + token);
+    await renderUrlFromAuctionResult("/frame.html#" + token);
     expect(document.documentElement).toEqual(existingDom);
   });
 });

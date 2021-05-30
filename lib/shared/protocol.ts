@@ -10,7 +10,7 @@
  * the initial handshake. For simple data types, type guards are used instead.
  */
 
-import { AuctionAdConfig, InterestGroup } from "../public_api";
+import { AuctionAdConfig, AuctionAdInterestGroup } from "../public_api";
 import { isArray } from "./guards";
 
 /**
@@ -20,8 +20,8 @@ import { isArray } from "./guards";
  * for that API.
  */
 export type FledgeRequest =
-  | { kind: RequestKind.JOIN_AD_INTEREST_GROUP; group: InterestGroup }
-  | { kind: RequestKind.LEAVE_AD_INTEREST_GROUP; group: InterestGroup }
+  | { kind: RequestKind.JOIN_AD_INTEREST_GROUP; group: AuctionAdInterestGroup }
+  | { kind: RequestKind.LEAVE_AD_INTEREST_GROUP; group: AuctionAdInterestGroup }
   | { kind: RequestKind.RUN_AD_AUCTION; config: AuctionAdConfig };
 
 /**
@@ -67,13 +67,11 @@ export function requestFromMessageData(
           if (!(isArray(adMessageData) && adMessageData.length === 2)) {
             return null;
           }
-          const [renderingUrl, price] = adMessageData;
-          if (
-            !(typeof renderingUrl === "string" && typeof price === "number")
-          ) {
+          const [renderUrl, price] = adMessageData;
+          if (!(typeof renderUrl === "string" && typeof price === "number")) {
             return null;
           }
-          ads.push({ renderingUrl, metadata: { price } });
+          ads.push({ renderUrl, metadata: { price } });
         }
       } else if (adsMessageData !== undefined) {
         return null;
@@ -122,8 +120,8 @@ export function messageDataFromRequest(request: FledgeRequest): unknown {
         kind,
         name,
         trustedBiddingSignalsUrl,
-        ads?.map(({ renderingUrl, metadata: { price } }) => [
-          renderingUrl,
+        ads?.map(({ renderUrl: renderUrl, metadata: { price } }) => [
+          renderUrl,
           price,
         ]),
       ];
