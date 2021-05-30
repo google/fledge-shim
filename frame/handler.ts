@@ -15,6 +15,7 @@ import {
   RunAdAuctionResponse,
 } from "../lib/shared/protocol";
 import { runAdAuction } from "./auction";
+import { logError } from "./console";
 import { deleteInterestGroup, storeInterestGroup } from "./db_schema";
 
 /**
@@ -34,7 +35,8 @@ export async function handleRequest(
   try {
     const request = requestFromMessageData(data);
     if (!request) {
-      throw new Error(`Malformed request: ${JSON.stringify(data)}`);
+      logError("Malformed request from parent window:", [data]);
+      return;
     }
     switch (request.kind) {
       case RequestKind.JOIN_AD_INTEREST_GROUP:
@@ -49,18 +51,16 @@ export async function handleRequest(
         return;
       case RequestKind.RUN_AD_AUCTION: {
         if (ports.length !== 1) {
-          throw new Error(
-            `Port transfer mismatch during request: expected 1 port, but received ${ports.length}`
+          logError(
+            `Port transfer mismatch in request from parent window: Expected 1 port, but received ${ports.length}`
           );
+          return;
         }
         const [port] = ports;
         const response: RunAdAuctionResponse = await runAdAuction(
           request.config,
           hostname
         );
-        if (response === false) {
-          throw new Error("IndexedDB error");
-        }
         port.postMessage(response);
         return;
       }

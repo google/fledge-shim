@@ -117,20 +117,23 @@ describe("main", () => {
     expect(innerIframe.scrolling).toEqual("no");
   });
 
-  it("should throw on invalid token", () => {
+  it("should log an error on invalid token", () => {
+    const consoleSpy = spyOnAllFunctions(console);
     const iframe = document.createElement("iframe");
     iframe.src = "about:blank#" + token;
     document.body.appendChild(iframe);
     const win = iframe.contentWindow;
     assertToBeTruthy(win);
-    expect(() => {
-      main(win);
-    }).toThrowError();
+    main(win);
+    expect(consoleSpy.error).toHaveBeenCalledOnceWith(
+      jasmine.any(String),
+      "#" + token
+    );
   });
 
-  it("should throw if running on top window", () => {
-    expect(() => {
-      main(top);
-    }).toThrowError();
+  it("should log an error if running on top window", () => {
+    const consoleSpy = spyOnAllFunctions(console);
+    main(top);
+    expect(consoleSpy.error).toHaveBeenCalledOnceWith(jasmine.any(String));
   });
 });
