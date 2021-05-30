@@ -28,14 +28,18 @@ export function awaitMessageFromSelfToSelf(): Promise<MessageEvent<unknown> | nu
 /**
  * Returns a promise that resolves to the first `MessageEvent` sent to `port`,
  * which is activated if it hasn't been already, or to null if a deserialization
- * error occurs.
+ * error occurs. Closes the port afterwards.
  */
-export function awaitMessageToPort(
+export async function awaitMessageToPort(
   port: MessagePort
 ): Promise<MessageEvent<unknown> | null> {
-  const messageEventPromise = awaitMessage(port, () => true);
-  port.start();
-  return messageEventPromise;
+  try {
+    const messageEventPromise = awaitMessage(port, () => true);
+    port.start();
+    return await messageEventPromise;
+  } finally {
+    port.close();
+  }
 }
 
 function awaitMessage(

@@ -80,7 +80,12 @@ export async function awaitRunAdAuctionResponseToPort(
   if (!event) {
     throw new Error(DESERIALIZATION_ERROR_MESSAGE);
   }
-  const { data } = event;
+  const { data, ports } = event;
+  // Normally there shouldn't be any ports here, but in case a bogus frame sent
+  // some, we close them to avoid memory leaks.
+  for (const port of ports) {
+    port.close();
+  }
   if (!isRunAdAuctionResponse(data)) {
     const error: Partial<ErrorWithData> = new Error(
       "Malformed response: Expected RunAdAuctionResponse"
