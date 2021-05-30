@@ -32,10 +32,9 @@ const dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
   dbRequest.onerror = () => {
     reject(dbRequest.error);
   };
-  dbRequest.onblocked = () => {
-    // Since the version number is 1 (the lowest allowed), it shouldn't be
-    // possible for an earlier version of the same database to already be open.
-    /* istanbul ignore next */
+  // Since the version number is 1 (the lowest allowed), it shouldn't be
+  // possible for an earlier version of the same database to already be open.
+  dbRequest.onblocked = /* istanbul ignore next */ () => {
     reject(new Error());
   };
 });
@@ -68,13 +67,14 @@ export async function useStore(
       // on potentially expensive writes to disk.
       tx = db.transaction(storeName, txMode, { durability: "relaxed" });
     } catch (error: unknown) {
+      /* istanbul ignore else */
       if (error instanceof DOMException && error.name === "NotFoundError") {
         logError(error.message);
         resolve(false);
         return;
+      } else {
+        throw error;
       }
-      /* istanbul ignore next */
-      throw error;
     }
     tx.oncomplete = () => {
       resolve(true);

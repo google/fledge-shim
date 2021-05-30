@@ -244,11 +244,12 @@ function absoluteUrl(url: string) {
   try {
     return new URL(url, document.baseURI);
   } catch (error: unknown) {
+    /* istanbul ignore else */
     if (error instanceof TypeError) {
       throw new Error("Invalid URL: " + url);
+    } else {
+      throw error;
     }
-    /* istanbul ignore next */
-    throw error;
   }
 }
 

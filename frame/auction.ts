@@ -99,12 +99,13 @@ async function fetchAndValidateTrustedSignals(
   try {
     url = new URL(baseUrl);
   } catch (error: unknown) {
+    /* istanbul ignore else */
     if (error instanceof TypeError) {
       logWarning("Invalid URL:", [baseUrl]);
       return;
+    } else {
+      throw error;
     }
-    /* istanbul ignore next */
-    throw error;
   }
   if (url.search) {
     logWarning("Query string not allowed in URL:", [baseUrl]);

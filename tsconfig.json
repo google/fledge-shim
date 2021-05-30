@@ -2,6 +2,7 @@
   "exclude": ["dist/"],
   "compilerOptions": {
     "importHelpers": true,
+    "sourceMap": true,
     "target": "ES2020",
     "strict": true,
     "esModuleInterop": true,

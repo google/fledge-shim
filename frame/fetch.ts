@@ -67,11 +67,12 @@ export async function tryFetchJson(url: string): Promise<FetchJsonResult> {
   try {
     response = await fetch(url, requestInit);
   } catch (error: unknown) {
+    /* istanbul ignore else */
     if (error instanceof TypeError) {
       return { status: FetchJsonStatus.NETWORK_ERROR };
+    } else {
+      throw error;
     }
-    /* istanbul ignore next */
-    throw error;
   }
   const contentType = response.headers.get("Content-Type");
   if (contentType === null) {
@@ -107,15 +108,14 @@ export async function tryFetchJson(url: string): Promise<FetchJsonResult> {
   } catch (error: unknown) {
     if (error instanceof TypeError) {
       return { status: FetchJsonStatus.NETWORK_ERROR };
-    }
-    if (error instanceof SyntaxError) {
+    } /* istanbul ignore else */ else if (error instanceof SyntaxError) {
       return {
         status: FetchJsonStatus.VALIDATION_ERROR,
         errorMessage: error.message,
       };
+    } else {
+      throw error;
     }
-    /* istanbul ignore next */
-    throw error;
   }
   return { status: FetchJsonStatus.OK, value };
 }
