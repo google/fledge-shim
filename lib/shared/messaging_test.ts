@@ -9,6 +9,8 @@ import { assertToBeTruthy } from "../../testing/assert";
 import { cleanDomAfterEach } from "../../testing/dom";
 import {
   addMessagePortMatchers,
+  iframeSendingPostMessageErrorToParent,
+  portReceivingMessageError,
   postMessageFromIframeToSelf,
 } from "../../testing/messaging";
 import {
@@ -52,21 +54,8 @@ describe("messaging:", () => {
       await messageEventPromise;
     });
 
-    // Deliberately triggering a messageerror from test code is surprisingly
-    // tricky. One thing that does it is attempting to send a WebAssembly
-    // module to a different agent cluster; see
-    // https://html.spec.whatwg.org/multipage/origin.html#origin-keyed-agent-clusters.
-    // Sandboxing an iframe without allow-same-origin puts it in a different
-    // agent cluster. The inline bytes are the binary encoding of the smallest
-    // legal WebAssembly module; see
-    // https://webassembly.github.io/spec/core/binary/modules.html#binary-module.
-    const POSTMESSAGE_WASM_MODULE_SRCDOC =
-      "<!DOCTYPE html><title>Helper</title><script>parent.postMessage(new WebAssembly.Module(Uint8Array.of(0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x00, 0x00)), '*');</script>";
-
     it("should return null on message error", async () => {
-      const iframe = document.createElement("iframe");
-      iframe.srcdoc = POSTMESSAGE_WASM_MODULE_SRCDOC;
-      iframe.sandbox.add("allow-scripts");
+      const iframe = iframeSendingPostMessageErrorToParent();
       const messageEventPromise = awaitMessageFromIframeToSelf(iframe);
       document.body.appendChild(iframe);
       expect(await messageEventPromise).toBeNull();
@@ -76,10 +65,7 @@ describe("messaging:", () => {
       const iframe = document.createElement("iframe");
       document.body.appendChild(iframe);
       const messageEventPromise = awaitMessageFromIframeToSelf(iframe);
-      const otherIframe = document.createElement("iframe");
-      otherIframe.srcdoc = POSTMESSAGE_WASM_MODULE_SRCDOC;
-      otherIframe.sandbox.add("allow-scripts");
-      document.body.appendChild(otherIframe);
+      document.body.appendChild(iframeSendingPostMessageErrorToParent());
       await expectAsync(messageEventPromise).toBePending();
       postMessageFromIframeToSelf(iframe, "payload", []);
       await messageEventPromise;
@@ -128,6 +114,12 @@ describe("messaging:", () => {
       expect(data).toBe(payload);
       expect(ports).toHaveSize(1);
       await expectAsync(ports[0]).toBeEntangledWith(port2);
+    });
+
+    it("should return null on message error", async () => {
+      expect(
+        await awaitMessageToPort(await portReceivingMessageError())
+      ).toBeNull();
     });
   });
 });

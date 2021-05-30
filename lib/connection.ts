@@ -5,13 +5,16 @@
  */
 
 /**
- * @fileoverview The library's end of the handshake protocol that initially
- * establishes communication between the library and the frame. The
- * corresponding code for the frame is in `frame/main.ts`.
+ * @fileoverview Code that receives and parses messages from the frame to the
+ * library.
  */
 
 import { isObject } from "./shared/guards";
-import { awaitMessageFromIframeToSelf } from "./shared/messaging";
+import {
+  awaitMessageFromIframeToSelf,
+  awaitMessageToPort,
+} from "./shared/messaging";
+import { isRunAdAuctionResponse } from "./shared/protocol";
 import { VERSION, VERSION_KEY } from "./shared/version";
 
 /**
@@ -39,25 +42,72 @@ export async function awaitConnectionFromIframe(
 ): Promise<MessagePort> {
   const event = await awaitMessageFromIframeToSelf(iframe);
   if (!event) {
-    throw new Error("Message deserialization error");
+    throw new Error(DESERIALIZATION_ERROR_MESSAGE);
   }
   const { data, ports, origin } = event;
   if (origin !== expectedOrigin) {
     throw new Error(
-      `Origin mismatch during handshake: expected ${expectedOrigin}, but received ${origin}`
+      `Origin mismatch during handshake: Expected ${expectedOrigin}, but received ${origin}`
     );
   }
   if (!isObject(data) || data[VERSION_KEY] !== VERSION) {
-    throw new Error(
-      `Version mismatch during handshake: expected ${JSON.stringify({
+    const error: Partial<ErrorWithData> = new Error(
+      `Version mismatch during handshake: Expected ${JSON.stringify({
         [VERSION_KEY]: VERSION,
-      })}, but received ${JSON.stringify(data)}`
+      })}`
     );
+    error.data = data;
+    throw error;
   }
   if (ports.length !== 1) {
     throw new Error(
-      `Port transfer mismatch during handshake: expected 1 port, but received ${ports.length}`
+      `Port transfer mismatch during handshake: Expected 1 port, but received ${ports.length}`
     );
   }
   return ports[0];
+}
+
+/**
+ * Returns a promise that waits for the first `RunAdAuctionResponse` sent to
+ * `port`, which is activated if it hasn't been already. The promise resolves to
+ * the token if there is one, resolves to null if the auction had no winner, or
+ * rejects if any kind of error or unexpected condition occurs.
+ */
+export async function awaitRunAdAuctionResponseToPort(
+  port: MessagePort
+): Promise<string | null> {
+  const event = await awaitMessageToPort(port);
+  if (!event) {
+    throw new Error(DESERIALIZATION_ERROR_MESSAGE);
+  }
+  const { data } = event;
+  if (!isRunAdAuctionResponse(data)) {
+    const error: Partial<ErrorWithData> = new Error(
+      "Malformed response: Expected RunAdAuctionResponse"
+    );
+    error.data = data;
+    throw error;
+  }
+  switch (data) {
+    case true:
+      return null;
+    case false:
+      throw new Error("Error occurred in frame; see console for details");
+    default:
+      return data;
+  }
+}
+
+const DESERIALIZATION_ERROR_MESSAGE = "Message deserialization error";
+
+/**
+ * An error with additional associated data. This exists solely to facilitate
+ * debugging by callers of errors stemming from bad data coming from the frame.
+ * If you encounter such an error, you probably passed a bad value for
+ * `frameSrc`, or the party that is hosting the frame at that URL set it up
+ * incorrectly.
+ */
+export interface ErrorWithData extends Error {
+  /** The bad data passed from the frame. */
+  data: unknown;
 }
