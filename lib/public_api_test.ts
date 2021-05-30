@@ -138,7 +138,8 @@ describe("FledgeShim", () => {
     });
 
     it("should not fetch trusted scoring signals if there are no ads", async () => {
-      const fakeServerHandler = jasmine.createSpy<FakeServerHandler>();
+      const fakeServerHandler =
+        jasmine.createSpy<FakeServerHandler>("fakeServerHandler");
       setFakeServerHandler(fakeServerHandler);
       await create().runAdAuction({ trustedScoringSignalsUrl });
       expect(fakeServerHandler).not.toHaveBeenCalled();

@@ -176,7 +176,8 @@ describe("runAdAuction", () => {
   });
 
   it("should not fetch trusted scoring signals if there are no interest groups", async () => {
-    const fakeServerHandler = jasmine.createSpy<FakeServerHandler>();
+    const fakeServerHandler =
+      jasmine.createSpy<FakeServerHandler>("fakeServerHandler");
     setFakeServerHandler(fakeServerHandler);
     expect(
       await runAdAuction({ trustedScoringSignalsUrl }, hostname)
@@ -222,7 +223,8 @@ describe("runAdAuction", () => {
 
   it("should log a warning and not fetch trusted scoring signals if URL is ill-formed", async () => {
     await storeInterestGroup({ name, ads: [ad1, ad2] });
-    const fakeServerHandler = jasmine.createSpy<FakeServerHandler>();
+    const fakeServerHandler =
+      jasmine.createSpy<FakeServerHandler>("fakeServerHandler");
     setFakeServerHandler(fakeServerHandler);
     const consoleSpy = spyOnAllFunctions(console);
     const notUrl = "This string is not a URL.";
@@ -238,7 +240,8 @@ describe("runAdAuction", () => {
 
   it("should log a warning and not fetch trusted scoring signals if URL has a query string", async () => {
     await storeInterestGroup({ name, ads: [ad1, ad2] });
-    const fakeServerHandler = jasmine.createSpy<FakeServerHandler>();
+    const fakeServerHandler =
+      jasmine.createSpy<FakeServerHandler>("fakeServerHandler");
     setFakeServerHandler(fakeServerHandler);
     const consoleSpy = spyOnAllFunctions(console);
     const url = trustedScoringSignalsUrl + "?key=value";

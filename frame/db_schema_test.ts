@@ -28,7 +28,7 @@ describe("db_schema:", () => {
         ads: [{ renderingUrl: "about:blank", metadata: { price: 0.02 } }],
       };
       expect(await storeInterestGroup(group)).toBeTrue();
-      const callback = jasmine.createSpy<InterestGroupCallback>();
+      const callback = jasmine.createSpy<InterestGroupCallback>("callback");
       expect(await forEachInterestGroup(callback)).toBeTrue();
       expect(callback).toHaveBeenCalledOnceWith(group);
     });
@@ -56,7 +56,7 @@ describe("db_schema:", () => {
           );
         })
       ).toBeTrue();
-      const callback = jasmine.createSpy<InterestGroupCallback>();
+      const callback = jasmine.createSpy<InterestGroupCallback>("callback");
       expect(await forEachInterestGroup(callback)).toBeTrue();
       expect(callback).toHaveBeenCalledTimes(3);
       expect(callback).toHaveBeenCalledWith({
@@ -88,14 +88,14 @@ describe("db_schema:", () => {
         ads: [{ renderingUrl: "about:blank", metadata: { price: 0.02 } }],
       };
       expect(await storeInterestGroup(group)).toBeTrue();
-      const callback = jasmine.createSpy<InterestGroupCallback>();
+      const callback = jasmine.createSpy<InterestGroupCallback>("callback");
       expect(await forEachInterestGroup(callback)).toBeTrue();
       expect(callback).toHaveBeenCalledOnceWith(group);
     });
 
     it("should write an ad without all fields present", async () => {
       expect(await storeInterestGroup({ name })).toBeTrue();
-      const callback = jasmine.createSpy<InterestGroupCallback>();
+      const callback = jasmine.createSpy<InterestGroupCallback>("callback");
       expect(await forEachInterestGroup(callback)).toBeTrue();
       expect(callback).toHaveBeenCalledOnceWith({
         name,
@@ -119,7 +119,7 @@ describe("db_schema:", () => {
           ads: [{ renderingUrl: "about:blank#2", metadata: { price: 0.02 } }],
         })
       ).toBeTrue();
-      const callback = jasmine.createSpy<InterestGroupCallback>();
+      const callback = jasmine.createSpy<InterestGroupCallback>("callback");
       expect(await forEachInterestGroup(callback)).toBeTrue();
       expect(callback).toHaveBeenCalledOnceWith({
         name,
@@ -142,7 +142,7 @@ describe("db_schema:", () => {
           trustedBiddingSignalsUrl: "https://trusted-server-2.test/bidding",
         })
       ).toBeTrue();
-      const callback = jasmine.createSpy<InterestGroupCallback>();
+      const callback = jasmine.createSpy<InterestGroupCallback>("callback");
       expect(await forEachInterestGroup(callback)).toBeTrue();
       expect(callback).toHaveBeenCalledOnceWith({
         name,
@@ -169,7 +169,7 @@ describe("db_schema:", () => {
         })
       ).toBeTrue();
       expect(await deleteInterestGroup("interest group name 2")).toBeTrue();
-      const callback = jasmine.createSpy<InterestGroupCallback>();
+      const callback = jasmine.createSpy<InterestGroupCallback>("callback");
       expect(await forEachInterestGroup(callback)).toBeTrue();
       expect(callback).toHaveBeenCalledOnceWith({
         name: "interest group name 1",
@@ -180,7 +180,7 @@ describe("db_schema:", () => {
 
     it("should do nothing when deleting a nonexistent interest group", async () => {
       expect(await deleteInterestGroup("interest group name")).toBeTrue();
-      const callback = jasmine.createSpy<InterestGroupCallback>();
+      const callback = jasmine.createSpy<InterestGroupCallback>("callback");
       expect(await forEachInterestGroup(callback)).toBeTrue();
       expect(callback).not.toHaveBeenCalled();
     });
