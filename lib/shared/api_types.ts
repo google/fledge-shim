@@ -13,8 +13,8 @@
  * An ad creative that can participate in an auction and later be rendered onto
  * the page if it wins.
  *
- * The properties of this type aren't actually specified in the FLEDGE spec at
- * present; they are our best guess as to how this will work, and may be
+ * The properties of this type aren't actually specified in the FLEDGE explainer
+ * at present; they are our best guess as to how this will work, and may be
  * replaced later with a different API.
  */
 export interface Ad {

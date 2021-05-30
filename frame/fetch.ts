@@ -31,8 +31,8 @@ export enum FetchJsonStatus {
   NETWORK_ERROR,
   /**
    * An HTTP response was received and exposed to the script, but didn't conform
-   * to all the preconditions (some of which aren't currently in the spec but
-   * are enforced by Chrome's implementation).
+   * to all the preconditions (some of which aren't currently in the explainer
+   * but are enforced by Chrome's implementation).
    */
   VALIDATION_ERROR,
 }
