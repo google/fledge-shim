@@ -77,6 +77,8 @@ describe("testing/messaging:", () => {
   });
 
   describe("iframeSendingPostMessageErrorToParent", () => {
+    cleanDomAfterEach();
+
     it("should cause a deserialization failure on the current window", async () => {
       addEventListener("message", fail);
       try {
