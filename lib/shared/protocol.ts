@@ -14,10 +14,8 @@ import { AuctionAdConfig, AuctionAdInterestGroup } from "../public_api";
 import { isArray } from "./guards";
 
 /**
- * Wire-format type of the message sent from the library to the frame whenever
- * an API call is made to the library. This type is a discriminated union so
- * that the frame can first check which API was called, then validate the inputs
- * for that API.
+ * A message sent from the library to the frame whenever an API call is made to
+ * the library.
  */
 export type FledgeRequest =
   | { kind: RequestKind.JOIN_AD_INTEREST_GROUP; group: AuctionAdInterestGroup }
