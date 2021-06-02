@@ -120,7 +120,7 @@ describe("awaitRunAdAuctionResponseToPort", () => {
     const { port1: receiver, port2: sender } = new MessageChannel();
     const tokenPromise = awaitRunAdAuctionResponseToPort(receiver);
     const payload = new Date();
-    sender.postMessage(payload);
+    sender.postMessage(payload, [new MessageChannel().port1]);
     const error = await tokenPromise.then(fail, (error: unknown) => error);
     assertToBeInstanceOf(error, Error);
     const errorWithData: Partial<ErrorWithData> = error;

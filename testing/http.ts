@@ -23,7 +23,6 @@
 
 import "jasmine";
 import { isArray } from "../lib/shared/guards";
-import { awaitMessageToPort } from "../lib/shared/messaging";
 import { assertToBeTruthy } from "./assert";
 
 /**
@@ -122,10 +121,12 @@ beforeAll(async () => {
   await controllerChangePromise;
   const channel = new MessageChannel();
   port = channel.port1;
-  const readyMessagePromise = awaitMessageToPort(port);
+  const readyMessagePromise = new Promise<MessageEvent<unknown>>((resolve) => {
+    port.onmessage = resolve;
+  });
   assertToBeTruthy(navigator.serviceWorker.controller);
   navigator.serviceWorker.controller.postMessage(null, [channel.port2]);
-  await readyMessagePromise;
+  expect((await readyMessagePromise).data).toBeNull();
   port.onmessage = async ({ data, ports }: MessageEvent<unknown>) => {
     assertToBeTruthy(isArray(data) && data.length === 5);
     const [url, method, requestHeaders, requestBody, hasCredentials] = data;

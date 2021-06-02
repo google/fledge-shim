@@ -121,5 +121,13 @@ describe("messaging:", () => {
         await awaitMessageToPort(await portReceivingMessageError())
       ).toBeNull();
     });
+
+    it("should close the port", async () => {
+      const { port1: receiver, port2: sender } = new MessageChannel();
+      const messageEventPromise = awaitMessageToPort(receiver);
+      sender.postMessage(null);
+      await messageEventPromise;
+      await expectAsync(receiver).not.toBeEntangledWith(sender);
+    });
   });
 });
