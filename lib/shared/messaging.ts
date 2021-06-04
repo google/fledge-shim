@@ -42,6 +42,17 @@ export async function awaitMessageToPort(
   }
 }
 
+/**
+ * Returns a promise that resolves to the first `MessageEvent` sent to `worker`
+ * via `postMessage` in `worker`'s global scope, or to null if a deserialization
+ * error occurs.
+ */
+export function awaitMessageToWorker(
+  worker: Worker
+): Promise<MessageEvent<unknown> | null> {
+  return awaitMessage(worker, () => true);
+}
+
 function awaitMessage(
   target: MessageTarget,
   filter: (event: MessageEvent<unknown>) => boolean

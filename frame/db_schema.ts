@@ -9,32 +9,24 @@
  * IndexedDB, with runtime type checking.
  */
 
-import { AuctionAd, AuctionAdInterestGroup } from "../lib/shared/api_types";
+import { AuctionAdInterestGroup } from "../lib/shared/api_types";
 import { isArray } from "../lib/shared/guards";
 import { logWarning } from "./console";
 import { useStore } from "./indexeddb";
-
-/**
- * Analogous to {@link InterestGroup}, but all fields are required. This
- * represents an interest group as it is stored in the database.
- */
-export interface CanonicalInterestGroup {
-  name: string;
-  trustedBiddingSignalsUrl: string | undefined;
-  ads: AuctionAd[];
-}
+import { CanonicalInterestGroup } from "./types";
 
 function interestGroupFromRecord(record: unknown, key: IDBValidKey) {
   function handleMalformedEntry() {
     logWarning("Malformed entry in IndexedDB for key:", [key, ":", record]);
     return null;
   }
-  if (!(typeof key === "string" && isArray(record) && record.length === 2)) {
+  if (!(typeof key === "string" && isArray(record) && record.length === 3)) {
     return handleMalformedEntry();
   }
-  const [trustedBiddingSignalsUrl, adRecords] = record;
+  const [biddingLogicUrl, trustedBiddingSignalsUrl, adRecords] = record;
   if (
     !(
+      (biddingLogicUrl === undefined || typeof biddingLogicUrl === "string") &&
       (trustedBiddingSignalsUrl === undefined ||
         typeof trustedBiddingSignalsUrl === "string") &&
       isArray(adRecords)
@@ -53,11 +45,12 @@ function interestGroupFromRecord(record: unknown, key: IDBValidKey) {
     }
     ads.push({ renderUrl, metadata: { price } });
   }
-  return { name: key, trustedBiddingSignalsUrl, ads };
+  return { name: key, biddingLogicUrl, trustedBiddingSignalsUrl, ads };
 }
 
 function recordFromInterestGroup(group: CanonicalInterestGroup) {
   return [
+    group.biddingLogicUrl,
     group.trustedBiddingSignalsUrl,
     group.ads
       ? group.ads.map(({ renderUrl, metadata: { price } }) => [
@@ -92,12 +85,14 @@ export function storeInterestGroup(
           throw new Error(`${String(cursor.key)},${name}`);
         }
         const oldGroup = interestGroupFromRecord(cursor.value, name) ?? {
+          biddingLogicUrl: undefined,
           trustedBiddingSignalsUrl: undefined,
           ads: [],
         };
         cursor.update(
           recordFromInterestGroup({
             name,
+            biddingLogicUrl: group.biddingLogicUrl ?? oldGroup.biddingLogicUrl,
             trustedBiddingSignalsUrl:
               group.trustedBiddingSignalsUrl ??
               oldGroup.trustedBiddingSignalsUrl,
@@ -108,6 +103,7 @@ export function storeInterestGroup(
         store.add(
           recordFromInterestGroup({
             name,
+            biddingLogicUrl: group.biddingLogicUrl,
             trustedBiddingSignalsUrl: group.trustedBiddingSignalsUrl,
             ads: group.ads ?? [],
           }),

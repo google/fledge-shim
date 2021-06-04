@@ -40,9 +40,14 @@ onfetch = async (fetchEvent) => {
   }
   const { port1: receiver, port2: sender } = new MessageChannel();
   fetchEvent.respondWith(
-    new Promise((resolve) => {
-      receiver.onmessage = ({ data: [status, statusText, headers, body] }) => {
+    new Promise((resolve, reject) => {
+      receiver.onmessage = ({ data }) => {
         receiver.close();
+        if (!data) {
+          reject();
+          return;
+        }
+        let [status, statusText, headers, body] = data;
         if (body === null) {
           // Cause any attempt to read the body to reject.
           body = new ReadableStream({

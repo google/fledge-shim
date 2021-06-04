@@ -20,8 +20,33 @@ import { handleRequest } from "./handler";
  * the ad is rendered into. This window's location fragment is used to decide
  * what to do. In production, this is always the global `window` object; a
  * friendly iframe may be used in unit tests.
+ * @param allowedLogicUrlPrefixesJoined URL prefixes that worklet scripts are
+ * to be sourced from, separated by commas.
  */
-export function main(win: Window): void {
+export function main(win: Window, allowedLogicUrlPrefixesJoined: string): void {
+  const allowedLogicUrlPrefixes = allowedLogicUrlPrefixesJoined.split(",");
+  for (const prefix of allowedLogicUrlPrefixes) {
+    let url;
+    try {
+      url = new URL(prefix);
+    } catch (error: unknown) {
+      /* istanbul ignore else */
+      if (error instanceof TypeError) {
+        logError("Prefix must be a valid absolute URL:", [prefix]);
+        return;
+      } else {
+        throw error;
+      }
+    }
+    if (!prefix.endsWith("/")) {
+      logError("Prefix must end with a slash:", [prefix]);
+      return;
+    }
+    if (url.protocol !== "https:") {
+      logError("Prefix must be HTTPS:", [prefix]);
+      return;
+    }
+  }
   const parentOrigin = win.location.ancestorOrigins[0];
   if (parentOrigin === undefined) {
     logError("Frame can't run as a top-level document");
@@ -31,15 +56,19 @@ export function main(win: Window): void {
   if (fragment) {
     render(win.document, fragment);
   } else {
-    connect(win.parent, parentOrigin);
+    connect(win.parent, parentOrigin, allowedLogicUrlPrefixes);
   }
 }
 
-function connect(targetWindow: Window, targetOrigin: string) {
+function connect(
+  targetWindow: Window,
+  targetOrigin: string,
+  allowedLogicUrlPrefixes: readonly string[]
+) {
   const { port1: receiver, port2: sender } = new MessageChannel();
   const { hostname } = new URL(targetOrigin);
   receiver.onmessage = (event: MessageEvent<unknown>) => {
-    void handleRequest(event, hostname);
+    void handleRequest(event, hostname, allowedLogicUrlPrefixes);
   };
   targetWindow.postMessage({ [VERSION_KEY]: VERSION }, targetOrigin, [sender]);
 }

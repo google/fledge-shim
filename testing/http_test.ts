@@ -63,6 +63,11 @@ describe("setFakeServerHandler", () => {
     );
   });
 
+  it("should reject on a null response", async () => {
+    setFakeServerHandler(() => Promise.resolve(null));
+    await expectAsync(fetch(url)).toBeRejectedWithError(TypeError);
+  });
+
   it("should reject when attempting to read a null body", async () => {
     const status = 206;
     const statusText = "Custom Status";

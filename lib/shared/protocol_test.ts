@@ -17,15 +17,27 @@ const requests: Array<{ request: FledgeRequest; messageData: unknown }> = [
   {
     request: {
       kind: RequestKind.JOIN_AD_INTEREST_GROUP,
-      group: { name: "", trustedBiddingSignalsUrl: undefined, ads: undefined },
+      group: {
+        name: "",
+        biddingLogicUrl: undefined,
+        trustedBiddingSignalsUrl: undefined,
+        ads: undefined,
+      },
     },
-    messageData: [RequestKind.JOIN_AD_INTEREST_GROUP, "", undefined, undefined],
+    messageData: [
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "",
+      undefined,
+      undefined,
+      undefined,
+    ],
   },
   {
     request: {
       kind: RequestKind.JOIN_AD_INTEREST_GROUP,
       group: {
         name: "interest group name",
+        biddingLogicUrl: "https://dsp.example/bidder.js",
         trustedBiddingSignalsUrl: "https://trusted-server.example/bidding",
         ads: [
           { renderUrl: "https://ad.example/1", metadata: { price: 0.02 } },
@@ -36,6 +48,7 @@ const requests: Array<{ request: FledgeRequest; messageData: unknown }> = [
     messageData: [
       RequestKind.JOIN_AD_INTEREST_GROUP,
       "interest group name",
+      "https://dsp.example/bidder.js",
       "https://trusted-server.example/bidding",
       [
         ["https://ad.example/1", 0.02],
@@ -91,11 +104,13 @@ describe("requestFromMessageData", () => {
     [
       RequestKind.JOIN_AD_INTEREST_GROUP,
       "interest group name",
+      "https://dsp.example/bidder.js",
       "https://trusted-server.example/bidding",
     ],
     [
       RequestKind.JOIN_AD_INTEREST_GROUP,
       "interest group name",
+      "https://dsp.example/bidder.js",
       "https://trusted-server.example/bidding",
       [],
       42,
@@ -103,31 +118,49 @@ describe("requestFromMessageData", () => {
     [
       RequestKind.JOIN_AD_INTEREST_GROUP,
       [],
+      "https://dsp.example/bidder.js",
       "https://trusted-server.example/bidding",
       [],
     ],
-    [RequestKind.JOIN_AD_INTEREST_GROUP, "interest group name", {}, []],
     [
       RequestKind.JOIN_AD_INTEREST_GROUP,
       "interest group name",
+      {},
+      "https://trusted-server.example/bidding",
+      [],
+    ],
+    [
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "interest group name",
+      "https://dsp.example/bidder.js",
+      42,
+      [],
+    ],
+    [
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "interest group name",
+      "https://dsp.example/bidder.js",
       "https://trusted-server.example/bidding",
       "nope",
     ],
     [
       RequestKind.JOIN_AD_INTEREST_GROUP,
       "interest group name",
+      "https://dsp.example/bidder.js",
       "https://trusted-server.example/bidding",
       [null],
     ],
     [
       RequestKind.JOIN_AD_INTEREST_GROUP,
       "interest group name",
+      "https://dsp.example/bidder.js",
       "https://trusted-server.example/bidding",
       [["https://ad.example/1", 0.02], []],
     ],
     [
       RequestKind.JOIN_AD_INTEREST_GROUP,
       "interest group name",
+      "https://dsp.example/bidder.js",
       "https://trusted-server.example/bidding",
       [
         ["https://ad.example/1", 0.02, true],
@@ -137,6 +170,7 @@ describe("requestFromMessageData", () => {
     [
       RequestKind.JOIN_AD_INTEREST_GROUP,
       "interest group name",
+      "https://dsp.example/bidder.js",
       "https://trusted-server.example/bidding",
       [
         ["https://ad.example/1", 0.02],
@@ -147,6 +181,7 @@ describe("requestFromMessageData", () => {
     [
       RequestKind.JOIN_AD_INTEREST_GROUP,
       "interest group name",
+      "https://dsp.example/bidder.js",
       "https://trusted-server.example/bidding",
       [
         ["https://ad.example/1", 0.02],
@@ -189,6 +224,7 @@ describe("messageDataFromRequest", () => {
       "interest group name",
       undefined,
       undefined,
+      undefined,
     ]);
   });
 
@@ -198,6 +234,7 @@ describe("messageDataFromRequest", () => {
         kind: RequestKind.LEAVE_AD_INTEREST_GROUP,
         group: {
           name: "interest group name",
+          biddingLogicUrl: "https://dsp.example/bidder.js",
           trustedBiddingSignalsUrl: "https://trusted-server.example/bidding",
           ads: [
             { renderUrl: "https://ad.example/1", metadata: { price: 0.02 } },

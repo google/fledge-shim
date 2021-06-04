@@ -148,8 +148,13 @@ export class FledgeShim {
       kind: RequestKind.JOIN_AD_INTEREST_GROUP,
       group: {
         ...group,
-        trustedBiddingSignalsUrl: absoluteTrustedSignalsUrl(
-          group.trustedBiddingSignalsUrl
+        biddingLogicUrl: absoluteHttpsUrl(
+          group.biddingLogicUrl,
+          /* allowQueryString= */ true
+        ),
+        trustedBiddingSignalsUrl: absoluteHttpsUrl(
+          group.trustedBiddingSignalsUrl,
+          /* allowQueryString= */ false
         ),
       },
     });
@@ -221,8 +226,9 @@ export class FledgeShim {
       kind: RequestKind.RUN_AD_AUCTION,
       config: {
         ...config,
-        trustedScoringSignalsUrl: absoluteTrustedSignalsUrl(
-          config.trustedScoringSignalsUrl
+        trustedScoringSignalsUrl: absoluteHttpsUrl(
+          config.trustedScoringSignalsUrl,
+          /* allowQueryString= */ false
         ),
       },
     });
@@ -253,7 +259,7 @@ function absoluteUrl(url: string) {
   }
 }
 
-function absoluteTrustedSignalsUrl(url: string | undefined) {
+function absoluteHttpsUrl(url: string | undefined, allowQueryString: boolean) {
   if (url === undefined) {
     return undefined;
   }
@@ -261,7 +267,7 @@ function absoluteTrustedSignalsUrl(url: string | undefined) {
   if (parsedUrl.protocol !== "https:") {
     throw new Error("Only https: URLs allowed: " + url);
   }
-  if (parsedUrl.search) {
+  if (!allowQueryString && parsedUrl.search) {
     throw new Error("URL query string not allowed: " + url);
   }
   return parsedUrl.href;

@@ -11,4 +11,10 @@
 
 import { main } from "./frame/main";
 
-main(window);
+const allowedLogicUrlPrefixesJoined = process.env.ALLOWED_LOGIC_URL_PREFIXES;
+// It shouldn't be possible for this to be undefined; Webpack will fail the
+// build if no value is provided.
+if (allowedLogicUrlPrefixesJoined === undefined) {
+  throw new Error();
+}
+main(window, allowedLogicUrlPrefixesJoined);
