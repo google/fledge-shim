@@ -134,16 +134,15 @@ beforeAll(async () => {
       typeof url === "string" &&
         typeof method === "string" &&
         isArray(requestHeaders) &&
-        requestHeaders.every((header): header is [
-          name: string,
-          value: string
-        ] => {
-          if (!isArray(header) || header.length !== 2) {
-            return false;
+        requestHeaders.every(
+          (header): header is [name: string, value: string] => {
+            if (!isArray(header) || header.length !== 2) {
+              return false;
+            }
+            const [name, value] = header;
+            return typeof name === "string" && typeof value === "string";
           }
-          const [name, value] = header;
-          return typeof name === "string" && typeof value === "string";
-        }) &&
+        ) &&
         requestBody instanceof ArrayBuffer &&
         typeof hasCredentials === "boolean"
     );
