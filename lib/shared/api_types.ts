@@ -28,8 +28,7 @@ export interface AuctionAd {
     /**
      * The amount that the buyer is willing to pay in order to have this ad
      * selected. The ad with the highest price is selected; in case of a tie, an
-     * ad with the highest price is selected arbitrarily (based on IndexedDB
-     * implementation details).
+     * ad with the highest price is selected based on database order.
      *
      * This is used by our temporary hardcoded auction logic and will not exist
      * in browser-native implementations of FLEDGE (in which auction logic, and
@@ -58,6 +57,15 @@ export interface AuctionAdInterestGroup {
    * that can be used to refer to it in order to update or delete it later.
    */
   name: string;
+  /**
+   * An HTTPS URL. At auction time, the bidding script is fetched from here and
+   * its `generateBid` function is called in an isolated worklet-like
+   * environment. The script must be served with a JavaScript MIME type and with
+   * the header `X-FLEDGE-Shim: true`, and its URL must begin with one of the
+   * prefixes specified when building the frame. If undefined, this interest
+   * group is silently skipped.
+   */
+  biddingLogicUrl?: string;
   /**
    * An HTTPS URL with no query string. If provided, a request to this URL is
    * made at auction time. The response is expected to be a JSON object.

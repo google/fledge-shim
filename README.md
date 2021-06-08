@@ -11,6 +11,31 @@ being able to add new features to the browser itself.
 This project has not yet been tested in production; use at your own risk.
 Furthermore, most of the API is not yet implemented.
 
+## Building
+
+As with most JavaScript projects, you'll need Node.js and npm. Install
+dependencies with `npm install` as per usual.
+
+In order to build the frame, you have to set a list of allowed URL prefixes for
+the worklets. The frame will only allow `biddingLogicUrl` and `decisionLogicUrl`
+values that start with those prefixes. Each such prefix must consist of an HTTPS
+origin optionally followed by a path, and must end with a slash. So, for
+instance, you could allow worklet scripts under `https://dsp.example`, or
+`https://ssp.example/js/`.
+
+The reason for this is because worklet scripts have access to cross-site
+interest group and related data, and nothing prevents them from exfiltrating
+that data. So, if you're going to host the frame and have such cross-site data
+stored in its origin in users' browsers, you should make sure to only allow
+worklet scripts from sources that you trust not to do that.
+
+Once you have an allowlist, set the `ALLOWED_LOGIC_URL_PREFIXES` environment
+variable to the allowlist with the entries separated by commas, then run
+`npm run build`. For example, on Mac or Linux, you might run
+`ALLOWED_LOGIC_URL_PREFIXES=https://dsp.example/,https://ssp.example/js/ npm run build`;
+on Windows PowerShell, the equivalent would be
+`$Env:ALLOWED_LOGIC_URL_PREFIXES = "https://dsp.example/,https://ssp.example/js/"; npm run build`.
+
 ## Design
 
 FLEDGE requires a way to store information in the browser that is (a) accessible

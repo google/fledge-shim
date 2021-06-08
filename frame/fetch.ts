@@ -13,13 +13,14 @@
  */
 
 /**
- * The kinds of things that can happen as a result of trying to fetch JSON over
- * HTTP.
+ * The kinds of things that can happen as a result of trying to fetch JSON or
+ * JavaScript over HTTP.
  */
-export enum FetchJsonStatus {
+export enum FetchStatus {
   /**
-   * JSON was successfully fetched and parsed. Note that this can happen even if
-   * the response has a 4xx or 5xx status code; status codes are ignored.
+   * JSON or JavaScript was successfully fetched and parsed. Note that this can
+   * happen even if the response has a 4xx or 5xx status code; status codes are
+   * ignored.
    */
   OK,
   /**
@@ -37,29 +38,30 @@ export enum FetchJsonStatus {
   VALIDATION_ERROR,
 }
 
-/** The result of trying to fetch JSON over HTTP. */
-export type FetchJsonResult =
+/** The result of trying to fetch JSON or JavaScript over HTTP. */
+export type FetchResult<T> =
   | {
-      status: FetchJsonStatus.OK;
-      /** The value parsed from the JSON response. */
-      value: unknown;
+      status: FetchStatus.OK;
+      /** The response, after any applicable postprocessing. */
+      value: T;
     }
-  | { status: FetchJsonStatus.NETWORK_ERROR }
+  | { status: FetchStatus.NETWORK_ERROR }
   | {
-      status: FetchJsonStatus.VALIDATION_ERROR;
+      status: FetchStatus.VALIDATION_ERROR;
       /** A human-readable explanation of which precondition wasn't met. */
       errorMessage: string;
       /** Data to be logged alongside the error message. */
       errorData?: readonly unknown[];
     };
 
-/**
- * Makes an HTTP request to a URL that's supposed to serve a JSON response body,
- * and returns the parsed response.
- */
-export async function tryFetchJson(url: string): Promise<FetchJsonResult> {
+async function tryFetch(
+  url: string,
+  mimeType: string,
+  mimeTypeRegExp: RegExp,
+  mimeTypeDescription: string
+): Promise<FetchResult<Response>> {
   const requestInit: RequestInit = {
-    headers: new Headers({ "Accept": "application/json" }),
+    headers: new Headers({ "Accept": mimeType }),
     credentials: "omit",
     redirect: "error",
   };
@@ -69,7 +71,7 @@ export async function tryFetchJson(url: string): Promise<FetchJsonResult> {
   } catch (error: unknown) {
     /* istanbul ignore else */
     if (error instanceof TypeError) {
-      return { status: FetchJsonStatus.NETWORK_ERROR };
+      return { status: FetchStatus.NETWORK_ERROR };
     } else {
       throw error;
     }
@@ -77,45 +79,98 @@ export async function tryFetchJson(url: string): Promise<FetchJsonResult> {
   const contentType = response.headers.get("Content-Type");
   if (contentType === null) {
     return {
-      status: FetchJsonStatus.VALIDATION_ERROR,
-      errorMessage: "Expected JSON MIME type but received none",
+      status: FetchStatus.VALIDATION_ERROR,
+      errorMessage: `Expected ${mimeTypeDescription} MIME type but received none`,
     };
   }
-  if (!/^(application\/([^;]*\+)?|text\/)json(;.*)?$/i.test(contentType)) {
+  if (!mimeTypeRegExp.test(contentType)) {
     return {
-      status: FetchJsonStatus.VALIDATION_ERROR,
-      errorMessage: "Expected JSON MIME type but received:",
+      status: FetchStatus.VALIDATION_ERROR,
+      errorMessage: `Expected ${mimeTypeDescription} MIME type but received:`,
       errorData: [contentType],
     };
   }
   const xAllowFledge = response.headers.get("X-Allow-FLEDGE");
   if (xAllowFledge === null) {
     return {
-      status: FetchJsonStatus.VALIDATION_ERROR,
+      status: FetchStatus.VALIDATION_ERROR,
       errorMessage: "Expected header X-Allow-FLEDGE: true but received none",
     };
   }
   if (!/^true$/i.test(xAllowFledge)) {
     return {
-      status: FetchJsonStatus.VALIDATION_ERROR,
+      status: FetchStatus.VALIDATION_ERROR,
       errorMessage: "Expected header X-Allow-FLEDGE: true but received:",
       errorData: [xAllowFledge],
     };
   }
+  return { status: FetchStatus.OK, value: response };
+}
+
+/**
+ * Makes an HTTP request to a URL that's supposed to serve a JSON response body,
+ * and returns the parsed response.
+ */
+export async function tryFetchJson(url: string): Promise<FetchResult<unknown>> {
+  const result = await tryFetch(
+    url,
+    "application/json",
+    // https://mimesniff.spec.whatwg.org/#json-mime-type
+    // Chrome's behavior deviates from the spec here; it only allows +json if
+    // the top-level type is application.
+    /^\s*(application\/([^;]*\+)?|text\/)json\s*(;.*)?$/i,
+    "JSON"
+  );
+  if (result.status !== FetchStatus.OK) {
+    return result;
+  }
+  const response = result.value;
   let value: unknown;
   try {
     value = await response.json();
   } catch (error: unknown) {
     if (error instanceof TypeError) {
-      return { status: FetchJsonStatus.NETWORK_ERROR };
+      return { status: FetchStatus.NETWORK_ERROR };
     } /* istanbul ignore else */ else if (error instanceof SyntaxError) {
       return {
-        status: FetchJsonStatus.VALIDATION_ERROR,
+        status: FetchStatus.VALIDATION_ERROR,
         errorMessage: error.message,
       };
     } else {
       throw error;
     }
   }
-  return { status: FetchJsonStatus.OK, value };
+  return { status: FetchStatus.OK, value };
+}
+
+/**
+ * Makes an HTTP request to a URL that's supposed to serve a JavaScript response
+ * body, and returns the script as a string.
+ */
+export async function tryFetchJavaScript(
+  url: string
+): Promise<FetchResult<string>> {
+  const result = await tryFetch(
+    url,
+    "application/javascript",
+    // https://mimesniff.spec.whatwg.org/#javascript-mime-type
+    /^\s*((application|text)\/(x-)?(jav|ecm)ascript|text\/(javascript1\.[0-5]|(j|live)script))\s*(;.*)?$/i,
+    "JavaScript"
+  );
+  if (result.status !== FetchStatus.OK) {
+    return result;
+  }
+  const response = result.value;
+  let value: string;
+  try {
+    value = await response.text();
+  } catch (error: unknown) {
+    /* istanbul ignore else */
+    if (error instanceof TypeError) {
+      return { status: FetchStatus.NETWORK_ERROR };
+    } else {
+      throw error;
+    }
+  }
+  return { status: FetchStatus.OK, value };
 }

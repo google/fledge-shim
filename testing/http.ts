@@ -84,8 +84,13 @@ export interface FakeResponse {
   readonly body?: string | Readonly<BufferSource> | null;
 }
 
-/** A callback that consumes an HTTP request and returns a response. */
-export type FakeServerHandler = (request: FakeRequest) => Promise<FakeResponse>;
+/**
+ * A callback that consumes an HTTP request and returns a response, or null to
+ * simulate a network error.
+ */
+export type FakeServerHandler = (
+  request: FakeRequest
+) => Promise<FakeResponse | null>;
 
 let registration: ServiceWorkerRegistration;
 let port: MessagePort;
@@ -94,9 +99,9 @@ let currentHandler: FakeServerHandler;
 /**
  * For the remainder of the current test spec, whenever an HTTP request is made
  * to a `.test` URL, call the given handler function passing that URL, and use
- * its return value as the response body, instead of the default empty string.
- * If this has already been called earlier in the same spec, the previous
- * handler is overwritten.
+ * its return value as the response (or fail the request, if null is returned),
+ * instead of the default empty response. If this has already been called
+ * earlier in the same spec, the previous handler is overwritten.
  *
  * Don't call this if an HTTP request has been sent but its response hasn't been
  * awaited; race conditions are likely to occur in that case.
@@ -136,6 +141,7 @@ beforeAll(async () => {
         isArray(requestHeaders) &&
         requestHeaders.every(
           (header): header is [name: string, value: string] => {
+            /* istanbul ignore if */
             if (!isArray(header) || header.length !== 2) {
               return false;
             }
@@ -146,19 +152,24 @@ beforeAll(async () => {
         requestBody instanceof ArrayBuffer &&
         typeof hasCredentials === "boolean"
     );
-    const {
-      status,
-      statusText,
-      headers: responseHeaders,
-      body: responseBody,
-    } = await currentHandler({
+    const response = await currentHandler({
       url: new URL(url),
       method,
       headers: Object.fromEntries(requestHeaders),
       body: new Uint8Array(requestBody),
       hasCredentials,
     });
-    ports[0].postMessage([status, statusText, responseHeaders, responseBody]);
+    let responseMessageData = null;
+    if (response) {
+      const {
+        status,
+        statusText,
+        headers: responseHeaders,
+        body: responseBody,
+      } = response;
+      responseMessageData = [status, statusText, responseHeaders, responseBody];
+    }
+    ports[0].postMessage(responseMessageData);
   };
 });
 

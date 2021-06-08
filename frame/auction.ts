@@ -6,11 +6,13 @@
 
 /** @fileoverview Selection of ads, and creation of tokens to display them. */
 
-import { AuctionAd, AuctionAdConfig } from "../lib/shared/api_types";
+import { AuctionAdConfig } from "../lib/shared/api_types";
 import { isKeyValueObject } from "../lib/shared/guards";
 import { logWarning } from "./console";
 import { forEachInterestGroup } from "./db_schema";
-import { FetchJsonStatus, tryFetchJson } from "./fetch";
+import { FetchStatus, tryFetchJavaScript, tryFetchJson } from "./fetch";
+import { BidData, CanonicalInterestGroup } from "./types";
+import { runBiddingScript } from "./worklet";
 
 /**
  * Selects the currently stored ad with the highest price, mints a token that
@@ -35,28 +37,55 @@ import { FetchJsonStatus, tryFetchJson } from "./fetch";
  *
  * @param hostname The hostname of the page where the FLEDGE Shim API is
  * running.
+ * @param allowedLogicUrlPrefixes URL prefixes that worklet scripts are allowed
+ * to be sourced from.
+ * @param extraScript Additional JavaScript code to run in the Web Worker before
+ * anything else. Used only in tests.
  */
 export async function runAdAuction(
   { trustedScoringSignalsUrl }: AuctionAdConfig,
-  hostname: string
+  hostname: string,
+  allowedLogicUrlPrefixes: readonly string[],
+  extraScript = ""
 ): Promise<string | boolean> {
-  let winner: AuctionAd | undefined;
   const trustedBiddingSignalsUrls = new Set<string>();
-  const renderUrls = new Set<string>();
+  const bidPromises: Array<Promise<BidData | null>> = [];
   if (
-    !(await forEachInterestGroup(({ trustedBiddingSignalsUrl, ads }) => {
-      if (trustedBiddingSignalsUrl !== undefined && ads.length) {
+    !(await forEachInterestGroup((group: CanonicalInterestGroup) => {
+      const { biddingLogicUrl, trustedBiddingSignalsUrl, ads } = group;
+      if (biddingLogicUrl === undefined) {
+        return;
+      }
+      if (
+        !allowedLogicUrlPrefixes.some((prefix) =>
+          biddingLogicUrl.startsWith(prefix)
+        )
+      ) {
+        logWarning("biddingLogicUrl is not allowlisted:", [biddingLogicUrl]);
+        return;
+      }
+      if (!ads.length) {
+        return;
+      }
+      if (trustedBiddingSignalsUrl !== undefined) {
         trustedBiddingSignalsUrls.add(trustedBiddingSignalsUrl);
       }
-      for (const ad of ads) {
-        renderUrls.add(ad.renderUrl);
-        if (!winner || ad.metadata.price > winner.metadata.price) {
-          winner = ad;
-        }
-      }
+      bidPromises.push(fetchScriptAndBid(biddingLogicUrl, group, extraScript));
     }))
   ) {
     return false;
+  }
+  let winner;
+  const renderUrls = new Set<string>();
+  for (const bidPromise of bidPromises) {
+    const bidData = await bidPromise;
+    if (!bidData) {
+      continue;
+    }
+    renderUrls.add(bidData.render);
+    if (!winner || bidData.bid > winner.bid) {
+      winner = bidData;
+    }
   }
   if (!winner) {
     return true;
@@ -79,16 +108,52 @@ export async function runAdAuction(
     })()
   );
   const token = randomToken();
-  sessionStorage.setItem(token, winner.renderUrl);
+  sessionStorage.setItem(token, winner.render);
   return token;
 }
 
-function randomToken() {
-  return Array.prototype.map
-    .call(crypto.getRandomValues(new Uint8Array(16)), (byte: number) =>
-      byte.toString(/* radix= */ 16).padStart(2, "0")
-    )
-    .join("");
+async function fetchScriptAndBid(
+  biddingLogicUrl: string,
+  group: CanonicalInterestGroup,
+  extraScript: string
+) {
+  const fetchResult = await tryFetchJavaScript(biddingLogicUrl);
+  switch (fetchResult.status) {
+    case FetchStatus.OK: {
+      const bidData = await runBiddingScript(
+        fetchResult.value,
+        group,
+        extraScript
+      );
+      if (!bidData) {
+        // Error has already been logged in the Web Worker.
+        return null;
+      }
+      if (!group.ads.some(({ renderUrl }) => renderUrl === bidData.render)) {
+        logWarning("Bid render URL", [
+          bidData.render,
+          "is not in interest group:",
+          group,
+        ]);
+        return null;
+      }
+      // Silently discard zero, negative, infinite, and NaN bids.
+      if (!(bidData.bid > 0 && bidData.bid < Infinity)) {
+        return null;
+      }
+      return bidData;
+    }
+    case FetchStatus.NETWORK_ERROR:
+      // Browser will have logged the error; no need to log it again.
+      return null;
+    case FetchStatus.VALIDATION_ERROR:
+      logWarning("Cannot use bidding script from", [
+        biddingLogicUrl,
+        ": " + fetchResult.errorMessage,
+        ...(fetchResult.errorData ?? []),
+      ]);
+      return null;
+  }
 }
 
 async function fetchAndValidateTrustedSignals(
@@ -115,7 +180,7 @@ async function fetchAndValidateTrustedSignals(
   const response = await tryFetchJson(url.href);
   const basicErrorMessage = "Cannot use trusted scoring signals from";
   switch (response.status) {
-    case FetchJsonStatus.OK: {
+    case FetchStatus.OK: {
       const signals = response.value;
       if (!isKeyValueObject(signals)) {
         logWarning(basicErrorMessage, [
@@ -126,10 +191,10 @@ async function fetchAndValidateTrustedSignals(
       }
       return;
     }
-    case FetchJsonStatus.NETWORK_ERROR:
+    case FetchStatus.NETWORK_ERROR:
       // Browser will have logged the error; no need to log it again.
       return;
-    case FetchJsonStatus.VALIDATION_ERROR:
+    case FetchStatus.VALIDATION_ERROR:
       logWarning(basicErrorMessage, [
         url.href,
         ": " + response.errorMessage,
@@ -137,4 +202,12 @@ async function fetchAndValidateTrustedSignals(
       ]);
       return;
   }
+}
+
+function randomToken() {
+  return Array.prototype.map
+    .call(crypto.getRandomValues(new Uint8Array(16)), (byte: number) =>
+      byte.toString(/* radix= */ 16).padStart(2, "0")
+    )
+    .join("");
 }

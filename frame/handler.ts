@@ -27,10 +27,13 @@ import { deleteInterestGroup, storeInterestGroup } from "./db_schema";
  *
  * @param hostname The hostname of the page where the FLEDGE Shim API is
  * running.
+ * @param allowedLogicUrlPrefixes URL prefixes that worklet scripts are allowed
+ * to be sourced from.
  */
 export async function handleRequest(
   { data, ports }: MessageEvent<unknown>,
-  hostname: string
+  hostname: string,
+  allowedLogicUrlPrefixes: readonly string[]
 ): Promise<void> {
   try {
     const request = requestFromMessageData(data);
@@ -39,11 +42,28 @@ export async function handleRequest(
       return;
     }
     switch (request.kind) {
-      case RequestKind.JOIN_AD_INTEREST_GROUP:
+      case RequestKind.JOIN_AD_INTEREST_GROUP: {
+        const { biddingLogicUrl } = request.group;
+        // We don't check this on the library end because the library doesn't
+        // know the allowlist, so we check it here in order to provide feedback
+        // to developers at the earliest possible point. This check is not
+        // security-critical because we check again at the point of use.
+        if (
+          !(
+            biddingLogicUrl === undefined ||
+            allowedLogicUrlPrefixes.some((prefix) =>
+              biddingLogicUrl.startsWith(prefix)
+            )
+          )
+        ) {
+          logError("biddingLogicUrl is not allowlisted:", [biddingLogicUrl]);
+          return;
+        }
         // Ignore return value; any errors will have already been logged and
         // there's nothing more to be done about them.
         await storeInterestGroup(request.group);
         return;
+      }
       case RequestKind.LEAVE_AD_INTEREST_GROUP:
         // Ignore return value; any errors will have already been logged and
         // there's nothing more to be done about them.
@@ -59,7 +79,8 @@ export async function handleRequest(
         const [port] = ports;
         const response: RunAdAuctionResponse = await runAdAuction(
           request.config,
-          hostname
+          hostname,
+          allowedLogicUrlPrefixes
         );
         port.postMessage(response);
         return;

@@ -18,12 +18,14 @@ describe("db_schema:", () => {
   clearStorageBeforeAndAfter();
 
   const name = "interest group name";
+  const biddingLogicUrl = "https://dsp.example/bidding.js";
   const trustedBiddingSignalsUrl = "https://trusted-server.test/bidding";
 
   describe("forEachInterestGroup", () => {
     it("should read an interest group from IndexedDB", async () => {
       const group = {
         name,
+        biddingLogicUrl,
         trustedBiddingSignalsUrl,
         ads: [{ renderUrl: "about:blank", metadata: { price: 0.02 } }],
       };
@@ -37,15 +39,24 @@ describe("db_schema:", () => {
       expect(
         await useStore("readwrite", (store) => {
           store.add(
-            [trustedBiddingSignalsUrl, [["about:blank#1", 0.01]]],
+            [
+              biddingLogicUrl,
+              trustedBiddingSignalsUrl,
+              [["about:blank#1", 0.01]],
+            ],
             "interest group name 1"
           );
           store.add(
-            ["https://trusted-server-2.test/bidding", []],
+            [
+              "https://dsp-2.example/bidding.js",
+              "https://trusted-server-2.test/bidding",
+              [],
+            ],
             "interest group name 2"
           );
           store.add(
             [
+              /* biddingLogicUrl= */ undefined,
               /* trustedBiddingSignalsUrl= */ undefined,
               [
                 ["about:blank#2", 0.02],
@@ -61,16 +72,19 @@ describe("db_schema:", () => {
       expect(callback).toHaveBeenCalledTimes(3);
       expect(callback).toHaveBeenCalledWith({
         name: "interest group name 1",
+        biddingLogicUrl,
         trustedBiddingSignalsUrl,
         ads: [{ renderUrl: "about:blank#1", metadata: { price: 0.01 } }],
       });
       expect(callback).toHaveBeenCalledWith({
         name: "interest group name 2",
+        biddingLogicUrl: "https://dsp-2.example/bidding.js",
         trustedBiddingSignalsUrl: "https://trusted-server-2.test/bidding",
         ads: [],
       });
       expect(callback).toHaveBeenCalledWith({
         name: "interest group name 3",
+        biddingLogicUrl: undefined,
         trustedBiddingSignalsUrl: undefined,
         ads: [
           { renderUrl: "about:blank#2", metadata: { price: 0.02 } },
@@ -84,6 +98,7 @@ describe("db_schema:", () => {
     it("should write an ad that can then be read", async () => {
       const group = {
         name,
+        biddingLogicUrl,
         trustedBiddingSignalsUrl,
         ads: [{ renderUrl: "about:blank", metadata: { price: 0.02 } }],
       };
@@ -99,6 +114,7 @@ describe("db_schema:", () => {
       expect(await forEachInterestGroup(callback)).toBeTrue();
       expect(callback).toHaveBeenCalledOnceWith({
         name,
+        biddingLogicUrl: undefined,
         trustedBiddingSignalsUrl: undefined,
         ads: [],
       });
@@ -108,6 +124,7 @@ describe("db_schema:", () => {
       expect(
         await storeInterestGroup({
           name,
+          biddingLogicUrl: "https://dsp-1.example/bidding.js",
           trustedBiddingSignalsUrl: "https://trusted-server-1.test/bidding",
           ads: [{ renderUrl: "about:blank#1", metadata: { price: 0.01 } }],
         })
@@ -115,6 +132,7 @@ describe("db_schema:", () => {
       expect(
         await storeInterestGroup({
           name,
+          biddingLogicUrl: "https://dsp-2.example/bidding.js",
           trustedBiddingSignalsUrl: "https://trusted-server-2.test/bidding",
           ads: [{ renderUrl: "about:blank#2", metadata: { price: 0.02 } }],
         })
@@ -123,6 +141,7 @@ describe("db_schema:", () => {
       expect(await forEachInterestGroup(callback)).toBeTrue();
       expect(callback).toHaveBeenCalledOnceWith({
         name,
+        biddingLogicUrl: "https://dsp-2.example/bidding.js",
         trustedBiddingSignalsUrl: "https://trusted-server-2.test/bidding",
         ads: [{ renderUrl: "about:blank#2", metadata: { price: 0.02 } }],
       });
@@ -132,6 +151,7 @@ describe("db_schema:", () => {
       expect(
         await storeInterestGroup({
           name,
+          biddingLogicUrl,
           trustedBiddingSignalsUrl: "https://trusted-server-1.test/bidding",
           ads: [{ renderUrl: "about:blank#1", metadata: { price: 0.01 } }],
         })
@@ -146,6 +166,7 @@ describe("db_schema:", () => {
       expect(await forEachInterestGroup(callback)).toBeTrue();
       expect(callback).toHaveBeenCalledOnceWith({
         name,
+        biddingLogicUrl,
         trustedBiddingSignalsUrl: "https://trusted-server-2.test/bidding",
         ads: [{ renderUrl: "about:blank#1", metadata: { price: 0.01 } }],
       });
@@ -157,6 +178,7 @@ describe("db_schema:", () => {
       expect(
         await storeInterestGroup({
           name: "interest group name 1",
+          biddingLogicUrl: "https://dsp-1.example/bidding.js",
           trustedBiddingSignalsUrl: "https://trusted-server-1.test/bidding",
           ads: [{ renderUrl: "about:blank#1", metadata: { price: 0.01 } }],
         })
@@ -164,6 +186,7 @@ describe("db_schema:", () => {
       expect(
         await storeInterestGroup({
           name: "interest group name 2",
+          biddingLogicUrl: "https://dsp-2.example/bidding.js",
           trustedBiddingSignalsUrl: "https://trusted-server-2.test/bidding",
           ads: [{ renderUrl: "about:blank#2", metadata: { price: 0.02 } }],
         })
@@ -173,6 +196,7 @@ describe("db_schema:", () => {
       expect(await forEachInterestGroup(callback)).toBeTrue();
       expect(callback).toHaveBeenCalledOnceWith({
         name: "interest group name 1",
+        biddingLogicUrl: "https://dsp-1.example/bidding.js",
         trustedBiddingSignalsUrl: "https://trusted-server-1.test/bidding",
         ads: [{ renderUrl: "about:blank#1", metadata: { price: 0.01 } }],
       });

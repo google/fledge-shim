@@ -31,6 +31,7 @@ describe("handleRequest", () => {
   beforeAll(addMessagePortMatchers);
 
   const hostname = "www.example.com";
+  const allowedLogicUrlPrefixes = ["https://dsp.test/"];
 
   for (const badInput of [
     null,
@@ -49,7 +50,8 @@ describe("handleRequest", () => {
       const messageEventPromise = awaitMessageToPort(receiver);
       await handleRequest(
         new MessageEvent("message", { data: badInput, ports: [sender] }),
-        hostname
+        hostname,
+        allowedLogicUrlPrefixes
       );
       expect(consoleSpy.error).toHaveBeenCalledOnceWith(
         jasmine.any(String),
@@ -73,7 +75,8 @@ describe("handleRequest", () => {
         }),
         ports: [channel.port2, otherChannel.port1, otherChannel.port2],
       }),
-      hostname
+      hostname,
+      allowedLogicUrlPrefixes
     );
     expect(consoleSpy.error).toHaveBeenCalledOnceWith(
       jasmine.stringMatching(/.*\b3\b.*/)
@@ -86,10 +89,11 @@ describe("handleRequest", () => {
   });
 
   const name = "interest group name";
+  const biddingLogicUrl = "https://dsp.test/bidder.js";
   const trustedBiddingSignalsUrl = "https://trusted-server.test/bidding";
   const renderUrl = "about:blank";
   const ads = [{ renderUrl, metadata: { price: 0.02 } }];
-  const group = { name, trustedBiddingSignalsUrl, ads };
+  const group = { name, biddingLogicUrl, trustedBiddingSignalsUrl, ads };
   const joinMessageEvent = new MessageEvent("message", {
     data: messageDataFromRequest({
       kind: RequestKind.JOIN_AD_INTEREST_GROUP,
@@ -98,14 +102,14 @@ describe("handleRequest", () => {
   });
 
   it("should join an interest group", async () => {
-    await handleRequest(joinMessageEvent, hostname);
+    await handleRequest(joinMessageEvent, hostname, allowedLogicUrlPrefixes);
     const callback = jasmine.createSpy<InterestGroupCallback>("callback");
     expect(await forEachInterestGroup(callback)).toBeTrue();
     expect(callback).toHaveBeenCalledOnceWith(group);
   });
 
   it("should partially overwrite an existing interest group", async () => {
-    await handleRequest(joinMessageEvent, hostname);
+    await handleRequest(joinMessageEvent, hostname, allowedLogicUrlPrefixes);
     const newTrustedBiddingSignalsUrl = "https://trusted-server-2.test/bidding";
     await handleRequest(
       new MessageEvent("message", {
@@ -117,19 +121,35 @@ describe("handleRequest", () => {
           },
         }),
       }),
-      hostname
+      hostname,
+      allowedLogicUrlPrefixes
     );
     const callback = jasmine.createSpy<InterestGroupCallback>("callback");
     expect(await forEachInterestGroup(callback)).toBeTrue();
     expect(callback).toHaveBeenCalledOnceWith({
       name,
+      biddingLogicUrl,
       trustedBiddingSignalsUrl: newTrustedBiddingSignalsUrl,
       ads,
     });
   });
 
+  it("should log an error and not join an interest group if bidding logic URL is not allowlisted", async () => {
+    const consoleSpy = spyOnAllFunctions(console);
+    await handleRequest(joinMessageEvent, hostname, [
+      "https://different-allowlist.test/",
+    ]);
+    const callback = jasmine.createSpy<InterestGroupCallback>("callback");
+    expect(await forEachInterestGroup(callback)).toBeTrue();
+    expect(callback).not.toHaveBeenCalled();
+    expect(consoleSpy.error).toHaveBeenCalledOnceWith(
+      jasmine.any(String),
+      biddingLogicUrl
+    );
+  });
+
   it("should leave an interest group", async () => {
-    await handleRequest(joinMessageEvent, hostname);
+    await handleRequest(joinMessageEvent, hostname, allowedLogicUrlPrefixes);
     await handleRequest(
       new MessageEvent("message", {
         data: messageDataFromRequest({
@@ -137,7 +157,8 @@ describe("handleRequest", () => {
           group,
         }),
       }),
-      hostname
+      hostname,
+      allowedLogicUrlPrefixes
     );
     const callback = jasmine.createSpy<InterestGroupCallback>("callback");
     expect(await forEachInterestGroup(callback)).toBeTrue();
@@ -145,21 +166,70 @@ describe("handleRequest", () => {
   });
 
   it("should run an ad auction", async () => {
-    const consoleSpy = spyOnAllFunctions(console);
-    await handleRequest(joinMessageEvent, hostname);
-    const { port1: receiver, port2: sender } = new MessageChannel();
-    const messageEventPromise = awaitMessageToPort(receiver);
-    const fakeServerHandler = jasmine
-      .createSpy<FakeServerHandler>()
+    const trustedScoringSignalsUrl = "https://trusted-server.test/scoring";
+    const trustedSignalsResponse = {
+      headers: {
+        "Content-Type": "application/json",
+        "X-Allow-FLEDGE": "true",
+      },
+      body: '{"a": 1, "b": [true, null]}',
+    };
+    const fakeServerHandler =
+      jasmine.createSpy<FakeServerHandler>("fakeServerHandler");
+    fakeServerHandler
+      .withArgs(
+        jasmine.objectContaining<FakeRequest>({
+          url: new URL(biddingLogicUrl),
+        })
+      )
       .and.resolveTo({
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/javascript",
           "X-Allow-FLEDGE": "true",
         },
-        body: '{"a": 1, "b": [true, null]}',
+        body: [
+          "function generateBid({",
+          "  name,",
+          "  biddingLogicUrl,",
+          "  trustedBiddingSignalsUrl,",
+          "  ads,",
+          "}) {",
+          "  if (",
+          "    !(",
+          "      name === 'interest group name' &&",
+          "      biddingLogicUrl === 'https://dsp.test/bidder.js' &&",
+          "      trustedBiddingSignalsUrl ===",
+          "        'https://trusted-server.test/bidding' &&",
+          "      ads.length === 1 &&",
+          "      ads[0].renderUrl === 'about:blank' &&",
+          "      ads[0].metadata.price === 0.02",
+          "    )",
+          "  ) {",
+          "    throw new Error();",
+          "  }",
+          "  return { bid: 0.03, render: 'about:blank' };",
+          "}",
+        ].join("\n"),
       });
+    fakeServerHandler
+      .withArgs(
+        jasmine.objectContaining<FakeRequest>({
+          url: new URL(trustedBiddingSignalsUrl + "?hostname=www.example.com"),
+        })
+      )
+      .and.resolveTo(trustedSignalsResponse);
+    fakeServerHandler
+      .withArgs(
+        jasmine.objectContaining<FakeRequest>({
+          url: new URL(trustedScoringSignalsUrl + "?keys=about%3Ablank"),
+        })
+      )
+      .and.resolveTo(trustedSignalsResponse);
     setFakeServerHandler(fakeServerHandler);
-    const trustedScoringSignalsUrl = "https://trusted-server.test/scoring";
+    const consoleSpy = spyOnAllFunctions(console);
+    await handleRequest(joinMessageEvent, hostname, allowedLogicUrlPrefixes);
+    const { port1: receiver, port2: sender } = new MessageChannel();
+    const messageEventPromise = awaitMessageToPort(receiver);
     await handleRequest(
       new MessageEvent("message", {
         data: messageDataFromRequest({
@@ -168,7 +238,8 @@ describe("handleRequest", () => {
         }),
         ports: [sender],
       }),
-      hostname
+      hostname,
+      allowedLogicUrlPrefixes
     );
     const event = await messageEventPromise;
     assertToBeTruthy(event);
@@ -176,7 +247,14 @@ describe("handleRequest", () => {
     assertToSatisfyTypeGuard(data, isRunAdAuctionResponse);
     assertToBeString(data);
     expect(sessionStorage.getItem(data)).toBe(renderUrl);
-    expect(fakeServerHandler).toHaveBeenCalledTimes(2);
+    expect(fakeServerHandler).toHaveBeenCalledTimes(3);
+    expect(fakeServerHandler).toHaveBeenCalledWith(
+      jasmine.objectContaining<FakeRequest>({
+        url: new URL(biddingLogicUrl),
+        method: "GET",
+        hasCredentials: false,
+      })
+    );
     expect(fakeServerHandler).toHaveBeenCalledWith(
       jasmine.objectContaining<FakeRequest>({
         url: new URL(trustedBiddingSignalsUrl + "?hostname=www.example.com"),

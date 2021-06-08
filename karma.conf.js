@@ -7,6 +7,11 @@
 const webpack = require("webpack");
 const webpackDevMiddleware = require("webpack-dev-middleware");
 
+// This specifically affects the frame served by webpack-dev-middleware,
+// which lib/public_api_test.ts depends on.
+process.env.ALLOWED_LOGIC_URL_PREFIXES =
+  "https://dsp.test/,https://dsp-1.test/,https://dsp-2.test/";
+
 module.exports = (config) => {
   config.set({
     plugins: [

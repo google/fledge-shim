@@ -71,6 +71,7 @@ describe("FledgeShim", () => {
   });
 
   const name = "interest group name";
+  const biddingLogicUrl = "https://dsp.test/bidder.js";
 
   describe("runAdAuction", () => {
     it("should return null if there are no interest groups", async () => {
@@ -84,22 +85,99 @@ describe("FledgeShim", () => {
     });
 
     it("should return a single ad", async () => {
+      const fakeServerHandler = jasmine
+        .createSpy<FakeServerHandler>("fakeServerHandler")
+        .and.resolveTo({
+          headers: {
+            "Content-Type": "application/javascript",
+            "X-Allow-FLEDGE": "true",
+          },
+          body: [
+            "function generateBid({",
+            "  name,",
+            "  biddingLogicUrl,",
+            "  trustedBiddingSignalsUrl,",
+            "  ads,",
+            "}) {",
+            "  if (",
+            "    !(",
+            "      name === 'interest group name' &&",
+            "      biddingLogicUrl === 'https://dsp.test/bidder.js' &&",
+            "      trustedBiddingSignalsUrl === undefined &&",
+            "      ads.length === 1 &&",
+            "      ads[0].renderUrl === 'about:blank' &&",
+            "      ads[0].metadata.price === 0.02",
+            "    )",
+            "  ) {",
+            "    throw new Error();",
+            "  }",
+            "  return { bid: 0.03, render: 'about:blank' };",
+            "}",
+          ].join("\n"),
+        });
+      setFakeServerHandler(fakeServerHandler);
       const fledgeShim = create();
       const renderUrl = "about:blank";
       fledgeShim.joinAdInterestGroup({
         name,
+        biddingLogicUrl,
         ads: [{ renderUrl, metadata: { price: 0.02 } }],
       });
       const token = await fledgeShim.runAdAuction({});
       assertToBeTruthy(token);
       expect(await renderUrlFromAuctionResult(token)).toBe(renderUrl);
+      expect(fakeServerHandler).toHaveBeenCalledOnceWith(
+        jasmine.objectContaining<FakeRequest>({
+          url: new URL(biddingLogicUrl),
+          method: "GET",
+          headers: jasmine.objectContaining<{ [name: string]: string }>({
+            "accept": "application/javascript",
+          }),
+          body: Uint8Array.of(),
+          hasCredentials: false,
+        })
+      );
     });
 
     it("should return the higher-priced ad from a single interest group", async () => {
+      const fakeServerHandler = jasmine
+        .createSpy<FakeServerHandler>("fakeServerHandler")
+        .and.resolveTo({
+          headers: {
+            "Content-Type": "application/javascript",
+            "X-Allow-FLEDGE": "true",
+          },
+          body: [
+            "function generateBid({",
+            "  name,",
+            "  biddingLogicUrl,",
+            "  trustedBiddingSignalsUrl,",
+            "  ads,",
+            "}) {",
+            "  if (",
+            "    !(",
+            "      name === 'interest group name' &&",
+            "      biddingLogicUrl === 'https://dsp.test/bidder.js' &&",
+            "      trustedBiddingSignalsUrl === undefined &&",
+            "      ads.length === 2 &&",
+            "      ads[0].renderUrl === 'about:blank#2' &&",
+            "      ads[0].metadata.price === 0.01 &&",
+            "      ads[1].renderUrl === 'about:blank#1' &&",
+            "      ads[1].metadata.price === 0.02",
+            "    )",
+            "  ) {",
+            "    throw new Error();",
+            "  }",
+            "  return { bid: 0.03, render: 'about:blank#1' };",
+            "}",
+          ].join("\n"),
+        });
+      setFakeServerHandler(fakeServerHandler);
       const fledgeShim = create();
       const renderUrl = "about:blank#1";
       fledgeShim.joinAdInterestGroup({
         name,
+        biddingLogicUrl,
         ads: [
           { renderUrl: "about:blank#2", metadata: { price: 0.01 } },
           { renderUrl, metadata: { price: 0.02 } },
@@ -108,40 +186,197 @@ describe("FledgeShim", () => {
       const token = await fledgeShim.runAdAuction({});
       assertToBeTruthy(token);
       expect(await renderUrlFromAuctionResult(token)).toBe(renderUrl);
+      expect(fakeServerHandler).toHaveBeenCalledOnceWith(
+        jasmine.objectContaining<FakeRequest>({
+          url: new URL(biddingLogicUrl),
+          method: "GET",
+          headers: jasmine.objectContaining<{ [name: string]: string }>({
+            "accept": "application/javascript",
+          }),
+          body: Uint8Array.of(),
+          hasCredentials: false,
+        })
+      );
     });
 
     it("should return the higher-priced ad across multiple interest groups", async () => {
+      const fakeServerHandler =
+        jasmine.createSpy<FakeServerHandler>("fakeServerHandler");
+      fakeServerHandler
+        .withArgs(
+          jasmine.objectContaining<FakeRequest>({
+            url: new URL("https://dsp-1.test/bidder.js"),
+          })
+        )
+        .and.resolveTo({
+          headers: {
+            "Content-Type": "application/javascript",
+            "X-Allow-FLEDGE": "true",
+          },
+          body: [
+            "function generateBid({",
+            "  name,",
+            "  biddingLogicUrl,",
+            "  trustedBiddingSignalsUrl,",
+            "  ads,",
+            "}) {",
+            "  if (",
+            "    !(",
+            "      name === 'interest group 1' &&",
+            "      biddingLogicUrl === 'https://dsp-1.test/bidder.js' &&",
+            "      trustedBiddingSignalsUrl === undefined &&",
+            "      ads.length === 1 &&",
+            "      ads[0].renderUrl === 'about:blank#1' &&",
+            "      ads[0].metadata.price === 0.01",
+            "    )",
+            "  ) {",
+            "    throw new Error();",
+            "  }",
+            "  return { bid: 0.03, render: 'about:blank#1' };",
+            "}",
+          ].join("\n"),
+        });
+      fakeServerHandler
+        .withArgs(
+          jasmine.objectContaining<FakeRequest>({
+            url: new URL("https://dsp-2.test/bidder.js"),
+          })
+        )
+        .and.resolveTo({
+          headers: {
+            "Content-Type": "application/javascript",
+            "X-Allow-FLEDGE": "true",
+          },
+          body: [
+            "function generateBid({",
+            "  name,",
+            "  biddingLogicUrl,",
+            "  trustedBiddingSignalsUrl,",
+            "  ads,",
+            "}) {",
+            "  if (",
+            "    !(",
+            "      name === 'interest group 2' &&",
+            "      biddingLogicUrl === 'https://dsp-2.test/bidder.js' &&",
+            "      trustedBiddingSignalsUrl === undefined &&",
+            "      ads.length === 1 &&",
+            "      ads[0].renderUrl === 'about:blank#2' &&",
+            "      ads[0].metadata.price === 0.02",
+            "    )",
+            "  ) {",
+            "    throw new Error();",
+            "  }",
+            "  return { bid: 0.04, render: 'about:blank#2' };",
+            "}",
+          ].join("\n"),
+        });
+      setFakeServerHandler(fakeServerHandler);
       const fledgeShim = create();
-      const renderUrl = "about:blank#1";
       fledgeShim.joinAdInterestGroup({
         name: "interest group 1",
-        ads: [{ renderUrl: "about:blank#2", metadata: { price: 0.01 } }],
+        biddingLogicUrl: "https://dsp-1.test/bidder.js",
+        ads: [{ renderUrl: "about:blank#1", metadata: { price: 0.01 } }],
       });
       fledgeShim.joinAdInterestGroup({
         name: "interest group 2",
-        ads: [{ renderUrl, metadata: { price: 0.02 } }],
+        biddingLogicUrl: "https://dsp-2.test/bidder.js",
+        ads: [{ renderUrl: "about:blank#2", metadata: { price: 0.02 } }],
       });
       const token = await fledgeShim.runAdAuction({});
       assertToBeTruthy(token);
-      expect(await renderUrlFromAuctionResult(token)).toBe(renderUrl);
+      expect(await renderUrlFromAuctionResult(token)).toBe("about:blank#2");
+      expect(fakeServerHandler).toHaveBeenCalledTimes(2);
+      expect(fakeServerHandler).toHaveBeenCalledWith(
+        jasmine.objectContaining<FakeRequest>({
+          url: new URL("https://dsp-1.test/bidder.js"),
+          method: "GET",
+          headers: jasmine.objectContaining<{ [name: string]: string }>({
+            "accept": "application/javascript",
+          }),
+          body: Uint8Array.of(),
+          hasCredentials: false,
+        })
+      );
+      expect(fakeServerHandler).toHaveBeenCalledWith(
+        jasmine.objectContaining<FakeRequest>({
+          url: new URL("https://dsp-2.test/bidder.js"),
+          method: "GET",
+          headers: jasmine.objectContaining<{ [name: string]: string }>({
+            "accept": "application/javascript",
+          }),
+          body: Uint8Array.of(),
+          hasCredentials: false,
+        })
+      );
     });
 
     const trustedBiddingSignalsUrl = "https://trusted-server.test/bidding";
     const trustedScoringSignalsUrl = "https://trusted-server.test/scoring";
 
     it("should fetch trusted bidding and scoring signals", async () => {
+      const fakeServerHandler =
+        jasmine.createSpy<FakeServerHandler>("fakeServerHandler");
+      fakeServerHandler
+        .withArgs(
+          jasmine.objectContaining<FakeRequest>({
+            url: new URL(biddingLogicUrl),
+          })
+        )
+        .and.resolveTo({
+          headers: {
+            "Content-Type": "application/javascript",
+            "X-Allow-FLEDGE": "true",
+          },
+          body: [
+            "function generateBid() {",
+            "  return { bid: 0.03, render: 'about:blank' };",
+            "}",
+          ].join("\n"),
+        });
+      fakeServerHandler
+        .withArgs(
+          jasmine.objectContaining<FakeRequest>({
+            url: new URL(
+              trustedBiddingSignalsUrl +
+                `?hostname=${encodeURIComponent(location.hostname)}`
+            ),
+          })
+        )
+        .and.resolveTo({
+          headers: {
+            "Content-Type": "application/json",
+            "X-Allow-FLEDGE": "true",
+          },
+          body: '{"a": 1, "b": [true, null]}',
+        });
+      fakeServerHandler
+        .withArgs(
+          jasmine.objectContaining<FakeRequest>({
+            url: new URL(trustedScoringSignalsUrl + "?keys=about%3Ablank"),
+          })
+        )
+        .and.resolveTo({
+          headers: {
+            "Content-Type": "application/json",
+            "X-Allow-FLEDGE": "true",
+          },
+          body: '{"a": 1, "b": [true, null]}',
+        });
+      setFakeServerHandler(fakeServerHandler);
       const fledgeShim = create();
       fledgeShim.joinAdInterestGroup({
         name: "interest group 1",
+        biddingLogicUrl,
         trustedBiddingSignalsUrl,
         ads: [{ renderUrl: "about:blank", metadata: { price: 0.02 } }],
       });
-      const fakeServerHandler = jasmine
-        .createSpy<FakeServerHandler>()
-        .and.resolveTo({ body: '{"a": 1, "b": [true, null]}' });
-      setFakeServerHandler(fakeServerHandler);
       await fledgeShim.runAdAuction({ trustedScoringSignalsUrl });
-      expect(fakeServerHandler).toHaveBeenCalledTimes(2);
+      expect(fakeServerHandler).toHaveBeenCalledTimes(3);
+      expect(fakeServerHandler).toHaveBeenCalledWith(
+        jasmine.objectContaining<FakeRequest>({
+          url: new URL(biddingLogicUrl),
+        })
+      );
       expect(fakeServerHandler).toHaveBeenCalledWith(
         jasmine.objectContaining<FakeRequest>({
           url: new URL(
@@ -149,6 +384,10 @@ describe("FledgeShim", () => {
               `?hostname=${encodeURIComponent(location.hostname)}`
           ),
           method: "GET",
+          headers: jasmine.objectContaining<{ [name: string]: string }>({
+            "accept": "application/json",
+          }),
+          body: Uint8Array.of(),
           hasCredentials: false,
         })
       );
@@ -156,6 +395,10 @@ describe("FledgeShim", () => {
         jasmine.objectContaining<FakeRequest>({
           url: new URL(trustedScoringSignalsUrl + "?keys=about%3Ablank"),
           method: "GET",
+          headers: jasmine.objectContaining<{ [name: string]: string }>({
+            "accept": "application/json",
+          }),
+          body: Uint8Array.of(),
           hasCredentials: false,
         })
       );
@@ -209,10 +452,24 @@ describe("FledgeShim", () => {
     });
 
     it("should not overwrite old property values with undefined ones", async () => {
+      setFakeServerHandler(() =>
+        Promise.resolve({
+          headers: {
+            "Content-Type": "application/javascript",
+            "X-Allow-FLEDGE": "true",
+          },
+          body: [
+            "function generateBid() {",
+            "  return { bid: 0.03, render: 'about:blank' };",
+            "}",
+          ].join("\n"),
+        })
+      );
       const fledgeShim = create();
       const renderUrl = "about:blank";
       fledgeShim.joinAdInterestGroup({
         name,
+        biddingLogicUrl,
         ads: [{ renderUrl, metadata: { price: 0.02 } }],
       });
       fledgeShim.joinAdInterestGroup({
