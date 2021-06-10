@@ -27,7 +27,7 @@
     "karma-chrome-launcher": "^3.1.0",
     "karma-jasmine": "^4.0.1",
     "karma-typescript": "^5.5.1",
-    "ng-packagr": "^12.0.4",
+    "ng-packagr": "^12.0.5",
     "prettier": "2.3.1",
     "react-dev-utils": "^11.0.4",
     "ts-loader": "^9.2.3",
