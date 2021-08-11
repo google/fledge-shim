@@ -14,7 +14,7 @@ import {
   AuctionAd,
   AuctionAdConfig,
   AuctionAdInterestGroup,
-} from "../public_api";
+} from "./api_types";
 import { isArray } from "./guards";
 
 /**
