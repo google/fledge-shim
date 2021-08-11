@@ -1,7 +1,7 @@
 # FLEDGE Shim
 
 We're building a pure-JavaScript implementation of the
-[FLEDGE proposal](https://github.com/WICG/turtledove/blob/master/FLEDGE.md), on
+[FLEDGE proposal](https://github.com/WICG/turtledove/blob/main/FLEDGE.md), on
 top of existing browser APIs. The goal is to allow testing as much of FLEDGE as
 possible, in as realistic a manner as possible, given the constraint of not
 being able to add new features to the browser itself.
