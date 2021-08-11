@@ -39,11 +39,30 @@ function interestGroupFromRecord(record: unknown, key: IDBValidKey) {
     if (!(isArray(adRecord) && adRecord.length === 2)) {
       return handleMalformedEntry();
     }
-    const [renderUrl, price] = adRecord;
-    if (!(typeof renderUrl === "string" && typeof price === "number")) {
+    const [renderUrl, metadata] = adRecord;
+    if (
+      !(
+        typeof renderUrl === "string" &&
+        (metadata === undefined ||
+          (typeof metadata === "object" && metadata !== null))
+      )
+    ) {
       return handleMalformedEntry();
     }
-    ads.push({ renderUrl, metadata: { price } });
+    try {
+      // Validate that metadata is not part of an object cycle.
+      // This is unfortunately redundant with the serialization in the worklet;
+      // it would be nice to figure out a way to avoid that without an
+      // unmaintainable proliferation of types.
+      // (We don't store the serialized string in IndexedDB for
+      // forward-compatibility with a potential future iteration of FLEDGE that
+      // allows arbitrary structured-cloneable metadata. See
+      // https://bugs.chromium.org/p/chromium/issues/detail?id=1238149.)
+      JSON.stringify(metadata);
+    } catch {
+      return handleMalformedEntry();
+    }
+    ads.push({ renderUrl, metadata });
   }
   return { name: key, biddingLogicUrl, trustedBiddingSignalsUrl, ads };
 }
@@ -53,10 +72,7 @@ function recordFromInterestGroup(group: CanonicalInterestGroup) {
     group.biddingLogicUrl,
     group.trustedBiddingSignalsUrl,
     group.ads
-      ? group.ads.map(({ renderUrl, metadata: { price } }) => [
-          renderUrl,
-          price,
-        ])
+      ? group.ads.map(({ renderUrl, metadata }) => [renderUrl, metadata])
       : [],
   ];
 }

@@ -5,16 +5,15 @@
  */
 
 /**
- * @fileoverview CRUD operations on our data model for persistent storage in
- * IndexedDB, with runtime type checking.
+ * @fileoverview Type definitions that span multiple concerns within the frame.
  */
 
 import { AuctionAd } from "../lib/shared/api_types";
 
 /**
  * Analogous to `InterestGroup` from `../lib/shared/api_types`, but all fields
- * are required. This represents an interest group as it is stored and used
- * internally.
+ * are required and metadata is represented as serialized JSON. This represents
+ * an interest group as it is stored and used internally.
  */
 export interface CanonicalInterestGroup {
   name: string;
@@ -30,12 +29,14 @@ export interface CanonicalInterestGroup {
  */
 export interface BidData {
   /**
+   * The JSON serialization of an arbitrary metadata value provided by the
+   * bidding script in association with its bid. This is passed to the scoring
+   * script.
+   */
+  adJson: string;
+  /**
    * The amount that the buyer is willing to pay in order to have this ad
-   * selected. The highest bid is selected; in case of a tie, one of the highest
-   * bids is selected based on database order.
-   *
-   * Browser-native implementations of FLEDGE will instead pass each bid to be
-   * evaluated by a decision script.
+   * selected. This is passed to the scoring script.
    *
    * The precise meaning of this value (what currency it's in, CPM vs. CPC,
    * etc.) is a matter of convention among buyers and sellers. The current

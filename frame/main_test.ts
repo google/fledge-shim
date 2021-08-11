@@ -21,7 +21,11 @@ import {
   assertToSatisfyTypeGuard,
 } from "../testing/assert";
 import { cleanDomAfterEach } from "../testing/dom";
-import { setFakeServerHandler } from "../testing/http";
+import {
+  FakeRequest,
+  FakeServerHandler,
+  setFakeServerHandler,
+} from "../testing/http";
 import { clearStorageBeforeAndAfter } from "../testing/storage";
 import { main } from "./main";
 
@@ -29,23 +33,45 @@ describe("main", () => {
   cleanDomAfterEach();
   clearStorageBeforeAndAfter();
 
-  const allowedLogicUrlPrefixesJoined = "https://dsp.test/";
+  const allowedLogicUrlPrefixesJoined = "https://dsp.test/,https://ssp.test/";
   const renderUrl = "about:blank#ad";
+  const biddingLogicUrl = "https://dsp.test/bidder.js";
+  const decisionLogicUrl = "https://ssp.test/scorer.js";
 
   it("should connect to parent window and handle requests from it", async () => {
-    setFakeServerHandler(() =>
-      Promise.resolve({
+    const fakeServerHandler =
+      jasmine.createSpy<FakeServerHandler>("fakeServerHandler");
+    fakeServerHandler
+      .withArgs(
+        jasmine.objectContaining<FakeRequest>({
+          url: new URL(biddingLogicUrl),
+        })
+      )
+      .and.resolveTo({
         headers: {
           "Content-Type": "application/javascript",
           "X-Allow-FLEDGE": "true",
         },
         body: [
           "function generateBid() {",
-          "  return { bid: 0.03, render: 'about:blank#ad' };",
+          "  return { ad: null, bid: 0.03, render: 'about:blank#ad' };",
           "}",
         ].join("\n"),
-      })
-    );
+      });
+    fakeServerHandler
+      .withArgs(
+        jasmine.objectContaining<FakeRequest>({
+          url: new URL(decisionLogicUrl),
+        })
+      )
+      .and.resolveTo({
+        headers: {
+          "Content-Type": "application/javascript",
+          "X-Allow-FLEDGE": "true",
+        },
+        body: "function scoreAd() { return 10; }",
+      });
+    setFakeServerHandler(fakeServerHandler);
     const iframe = document.createElement("iframe");
     document.body.appendChild(iframe);
     const handshakeMessageEventPromise = awaitMessageFromSelfToSelf();
@@ -61,15 +87,18 @@ describe("main", () => {
         kind: RequestKind.JOIN_AD_INTEREST_GROUP,
         group: {
           name: "interest group name",
-          biddingLogicUrl: "https://dsp.test/bidder.js",
-          ads: [{ renderUrl, metadata: { price: 0.02 } }],
+          biddingLogicUrl,
+          ads: [{ renderUrl, metadata: { "price": 0.02 } }],
         },
       })
     );
     const { port1: receiver, port2: sender } = new MessageChannel();
     const auctionMessageEventPromise = awaitMessageToPort(receiver);
     port.postMessage(
-      messageDataFromRequest({ kind: RequestKind.RUN_AD_AUCTION, config: {} }),
+      messageDataFromRequest({
+        kind: RequestKind.RUN_AD_AUCTION,
+        config: { decisionLogicUrl },
+      }),
       [sender]
     );
     const auctionMessageEvent = await auctionMessageEventPromise;

@@ -31,7 +31,7 @@ describe("handleRequest", () => {
   beforeAll(addMessagePortMatchers);
 
   const hostname = "www.example.com";
-  const allowedLogicUrlPrefixes = ["https://dsp.test/"];
+  const allowedLogicUrlPrefixes = ["https://dsp.test/", "https://ssp.test/"];
 
   for (const badInput of [
     null,
@@ -71,7 +71,7 @@ describe("handleRequest", () => {
       new MessageEvent("message", {
         data: messageDataFromRequest({
           kind: RequestKind.RUN_AD_AUCTION,
-          config: {},
+          config: { decisionLogicUrl },
         }),
         ports: [channel.port2, otherChannel.port1, otherChannel.port2],
       }),
@@ -90,9 +90,10 @@ describe("handleRequest", () => {
 
   const name = "interest group name";
   const biddingLogicUrl = "https://dsp.test/bidder.js";
+  const decisionLogicUrl = "https://ssp.test/scorer.js";
   const trustedBiddingSignalsUrl = "https://trusted-server.test/bidding";
   const renderUrl = "about:blank";
-  const ads = [{ renderUrl, metadata: { price: 0.02 } }];
+  const ads = [{ renderUrl, metadata: { "price": 0.02 } }];
   const group = { name, biddingLogicUrl, trustedBiddingSignalsUrl, ads };
   const joinMessageEvent = new MessageEvent("message", {
     data: messageDataFromRequest({
@@ -202,12 +203,44 @@ describe("handleRequest", () => {
           "        'https://trusted-server.test/bidding' &&",
           "      ads.length === 1 &&",
           "      ads[0].renderUrl === 'about:blank' &&",
-          "      ads[0].metadata.price === 0.02",
+          "      ads[0].metadata['price'] === 0.02",
           "    )",
           "  ) {",
           "    throw new Error();",
           "  }",
-          "  return { bid: 0.03, render: 'about:blank' };",
+          "  return { ad: 'Metadata', bid: 0.03, render: 'about:blank' };",
+          "}",
+        ].join("\n"),
+      });
+    fakeServerHandler
+      .withArgs(
+        jasmine.objectContaining<FakeRequest>({
+          url: new URL(decisionLogicUrl),
+        })
+      )
+      .and.resolveTo({
+        headers: {
+          "Content-Type": "application/javascript",
+          "X-Allow-FLEDGE": "true",
+        },
+        body: [
+          "function scoreAd(",
+          "  adMetadata,",
+          "  bid,",
+          "  { decisionLogicUrl, trustedScoringSignalsUrl },",
+          ") {",
+          "  if (",
+          "    !(",
+          "      adMetadata === 'Metadata' &&",
+          "      bid === 0.03 &&",
+          "      decisionLogicUrl === 'https://ssp.test/scorer.js' &&",
+          "      trustedScoringSignalsUrl ===",
+          "        'https://trusted-server.test/scoring'",
+          "    )",
+          "  ) {",
+          "    throw new Error();",
+          "  }",
+          "  return 10;",
           "}",
         ].join("\n"),
       });
@@ -234,7 +267,7 @@ describe("handleRequest", () => {
       new MessageEvent("message", {
         data: messageDataFromRequest({
           kind: RequestKind.RUN_AD_AUCTION,
-          config: { trustedScoringSignalsUrl },
+          config: { decisionLogicUrl, trustedScoringSignalsUrl },
         }),
         ports: [sender],
       }),
@@ -247,10 +280,17 @@ describe("handleRequest", () => {
     assertToSatisfyTypeGuard(data, isRunAdAuctionResponse);
     assertToBeString(data);
     expect(sessionStorage.getItem(data)).toBe(renderUrl);
-    expect(fakeServerHandler).toHaveBeenCalledTimes(3);
+    expect(fakeServerHandler).toHaveBeenCalledTimes(4);
     expect(fakeServerHandler).toHaveBeenCalledWith(
       jasmine.objectContaining<FakeRequest>({
         url: new URL(biddingLogicUrl),
+        method: "GET",
+        hasCredentials: false,
+      })
+    );
+    expect(fakeServerHandler).toHaveBeenCalledWith(
+      jasmine.objectContaining<FakeRequest>({
+        url: new URL(decisionLogicUrl),
         method: "GET",
         hasCredentials: false,
       })

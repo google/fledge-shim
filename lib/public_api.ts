@@ -144,18 +144,22 @@ export class FledgeShim {
    * @see https://github.com/WICG/turtledove/blob/main/FLEDGE.md#11-joining-interest-groups
    */
   joinAdInterestGroup(group: AuctionAdInterestGroup): void {
+    const { biddingLogicUrl, trustedBiddingSignalsUrl } = group;
     const messageData = messageDataFromRequest({
       kind: RequestKind.JOIN_AD_INTEREST_GROUP,
       group: {
         ...group,
-        biddingLogicUrl: absoluteHttpsUrl(
-          group.biddingLogicUrl,
-          /* allowQueryString= */ true
-        ),
-        trustedBiddingSignalsUrl: absoluteHttpsUrl(
-          group.trustedBiddingSignalsUrl,
-          /* allowQueryString= */ false
-        ),
+        biddingLogicUrl:
+          biddingLogicUrl === undefined
+            ? undefined
+            : absoluteHttpsUrl(biddingLogicUrl, /* allowQueryString= */ true),
+        trustedBiddingSignalsUrl:
+          trustedBiddingSignalsUrl === undefined
+            ? undefined
+            : absoluteHttpsUrl(
+                trustedBiddingSignalsUrl,
+                /* allowQueryString= */ false
+              ),
       },
     });
     void this.getState().portPromise.then(
@@ -218,18 +222,25 @@ export class FledgeShim {
    * implementations will instead resolve the returned URN directly to the ad
    * creative.
    *
-   * @see {@link Ad.metadata.price} for further behavioral notes.
    * @see https://github.com/WICG/turtledove/blob/main/FLEDGE.md#21-initiating-an-on-device-auction
    */
   async runAdAuction(config: AuctionAdConfig): Promise<string | null> {
+    const { trustedScoringSignalsUrl } = config;
     const messageData = messageDataFromRequest({
       kind: RequestKind.RUN_AD_AUCTION,
       config: {
         ...config,
-        trustedScoringSignalsUrl: absoluteHttpsUrl(
-          config.trustedScoringSignalsUrl,
-          /* allowQueryString= */ false
+        decisionLogicUrl: absoluteHttpsUrl(
+          config.decisionLogicUrl,
+          /* allowQueryString= */ true
         ),
+        trustedScoringSignalsUrl:
+          trustedScoringSignalsUrl === undefined
+            ? undefined
+            : absoluteHttpsUrl(
+                trustedScoringSignalsUrl,
+                /* allowQueryString= */ false
+              ),
       },
     });
     const { frameSrc, portPromise } = this.getState();
@@ -259,10 +270,7 @@ function absoluteUrl(url: string) {
   }
 }
 
-function absoluteHttpsUrl(url: string | undefined, allowQueryString: boolean) {
-  if (url === undefined) {
-    return undefined;
-  }
+function absoluteHttpsUrl(url: string, allowQueryString: boolean) {
   const parsedUrl = absoluteUrl(url);
   if (parsedUrl.protocol !== "https:") {
     throw new Error("Only https: URLs allowed: " + url);
