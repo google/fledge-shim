@@ -10,7 +10,11 @@
  * the initial handshake. For simple data types, type guards are used instead.
  */
 
-import { AuctionAdConfig, AuctionAdInterestGroup } from "../public_api";
+import {
+  AuctionAd,
+  AuctionAdConfig,
+  AuctionAdInterestGroup,
+} from "../public_api";
 import { isArray } from "./guards";
 
 /**
@@ -73,11 +77,26 @@ export function requestFromMessageData(
           if (!(isArray(adMessageData) && adMessageData.length === 2)) {
             return null;
           }
-          const [renderUrl, price] = adMessageData;
-          if (!(typeof renderUrl === "string" && typeof price === "number")) {
+          const [renderUrl, metadataJson] = adMessageData;
+          if (typeof renderUrl !== "string") {
             return null;
           }
-          ads.push({ renderUrl, metadata: { price } });
+          const ad: AuctionAd = { renderUrl };
+          if (typeof metadataJson === "string") {
+            let metadata: unknown;
+            try {
+              metadata = JSON.parse(metadataJson);
+            } catch {
+              return null;
+            }
+            if (typeof metadata !== "object" || metadata === null) {
+              return null;
+            }
+            ad.metadata = metadata;
+          } else if (metadataJson !== undefined) {
+            return null;
+          }
+          ads.push(ad);
         }
       } else if (adsMessageData !== undefined) {
         return null;
@@ -98,19 +117,20 @@ export function requestFromMessageData(
       return { kind, group: { name } };
     }
     case RequestKind.RUN_AD_AUCTION: {
-      if (messageData.length !== 2) {
+      if (messageData.length !== 3) {
         return null;
       }
-      const [, trustedScoringSignalsUrl] = messageData;
+      const [, decisionLogicUrl, trustedScoringSignalsUrl] = messageData;
       if (
         !(
-          trustedScoringSignalsUrl === undefined ||
-          typeof trustedScoringSignalsUrl === "string"
+          typeof decisionLogicUrl === "string" &&
+          (trustedScoringSignalsUrl === undefined ||
+            typeof trustedScoringSignalsUrl === "string")
         )
       ) {
         return null;
       }
-      return { kind, config: { trustedScoringSignalsUrl } };
+      return { kind, config: { decisionLogicUrl, trustedScoringSignalsUrl } };
     }
     default:
       return null;
@@ -130,16 +150,26 @@ export function messageDataFromRequest(request: FledgeRequest): unknown {
         name,
         biddingLogicUrl,
         trustedBiddingSignalsUrl,
-        ads?.map(({ renderUrl: renderUrl, metadata: { price } }) => [
-          renderUrl,
-          price,
-        ]),
+        ads?.map(({ renderUrl, metadata }) => {
+          let metadataJson;
+          if (metadata !== undefined) {
+            metadataJson = JSON.stringify(metadata);
+            if (metadataJson === undefined) {
+              throw new Error("metadata is not JSON-serializable");
+            }
+          }
+          return [renderUrl, metadataJson];
+        }),
       ];
     }
     case RequestKind.LEAVE_AD_INTEREST_GROUP:
       return [request.kind, request.group.name];
     case RequestKind.RUN_AD_AUCTION:
-      return [request.kind, request.config.trustedScoringSignalsUrl];
+      return [
+        request.kind,
+        request.config.decisionLogicUrl,
+        request.config.trustedScoringSignalsUrl,
+      ];
   }
 }
 

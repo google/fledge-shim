@@ -8,11 +8,11 @@
 
 import { AuctionAdConfig } from "../lib/shared/api_types";
 import { isKeyValueObject } from "../lib/shared/guards";
-import { logWarning } from "./console";
+import { logError, logWarning } from "./console";
 import { forEachInterestGroup } from "./db_schema";
 import { FetchStatus, tryFetchJavaScript, tryFetchJson } from "./fetch";
-import { BidData, CanonicalInterestGroup } from "./types";
-import { runBiddingScript } from "./worklet";
+import { CanonicalInterestGroup } from "./types";
+import { runBiddingScript, runScoringScript } from "./worklet";
 
 /**
  * Selects the currently stored ad with the highest price, mints a token that
@@ -43,13 +43,25 @@ import { runBiddingScript } from "./worklet";
  * anything else. Used only in tests.
  */
 export async function runAdAuction(
-  { trustedScoringSignalsUrl }: AuctionAdConfig,
+  config: AuctionAdConfig,
   hostname: string,
   allowedLogicUrlPrefixes: readonly string[],
   extraScript = ""
 ): Promise<string | boolean> {
+  const { decisionLogicUrl, trustedScoringSignalsUrl } = config;
+  if (
+    !allowedLogicUrlPrefixes.some((prefix) =>
+      decisionLogicUrl.startsWith(prefix)
+    )
+  ) {
+    logError("decisionLogicUrl is not allowlisted:", [decisionLogicUrl]);
+    return false;
+  }
   const trustedBiddingSignalsUrls = new Set<string>();
-  const bidPromises: Array<Promise<BidData | null>> = [];
+  const scorePromises: Array<
+    Promise<{ render: string; score: number } | null>
+  > = [];
+  let scoringScriptPromise: Promise<string | null> | undefined;
   if (
     !(await forEachInterestGroup((group: CanonicalInterestGroup) => {
       const { biddingLogicUrl, trustedBiddingSignalsUrl, ads } = group;
@@ -70,21 +82,49 @@ export async function runAdAuction(
       if (trustedBiddingSignalsUrl !== undefined) {
         trustedBiddingSignalsUrls.add(trustedBiddingSignalsUrl);
       }
-      bidPromises.push(fetchScriptAndBid(biddingLogicUrl, group, extraScript));
+      if (!scoringScriptPromise) {
+        scoringScriptPromise = tryFetchJavaScript(decisionLogicUrl).then(
+          (result) => {
+            switch (result.status) {
+              case FetchStatus.OK:
+                return result.value;
+              case FetchStatus.NETWORK_ERROR:
+                // Browser will have logged the error; no need to log it again.
+                return null;
+              case FetchStatus.VALIDATION_ERROR:
+                logError("Cannot use scoring script from", [
+                  decisionLogicUrl,
+                  ": " + result.errorMessage,
+                  ...(result.errorData ?? []),
+                ]);
+                return null;
+            }
+          }
+        );
+      }
+      scorePromises.push(
+        bidAndScore(
+          biddingLogicUrl,
+          scoringScriptPromise,
+          group,
+          config,
+          extraScript
+        )
+      );
     }))
   ) {
     return false;
   }
   let winner;
   const renderUrls = new Set<string>();
-  for (const bidPromise of bidPromises) {
-    const bidData = await bidPromise;
-    if (!bidData) {
+  for (const scorePromise of scorePromises) {
+    const scoreData = await scorePromise;
+    if (!scoreData) {
       continue;
     }
-    renderUrls.add(bidData.render);
-    if (!winner || bidData.bid > winner.bid) {
-      winner = bidData;
+    renderUrls.add(scoreData.render);
+    if (!winner || scoreData.score > winner.score) {
+      winner = scoreData;
     }
   }
   if (!winner) {
@@ -112,9 +152,11 @@ export async function runAdAuction(
   return token;
 }
 
-async function fetchScriptAndBid(
+async function bidAndScore(
   biddingLogicUrl: string,
+  scoringScriptPromise: Promise<string | null>,
   group: CanonicalInterestGroup,
+  config: AuctionAdConfig,
   extraScript: string
 ) {
   const fetchResult = await tryFetchJavaScript(biddingLogicUrl);
@@ -129,19 +171,32 @@ async function fetchScriptAndBid(
         // Error has already been logged in the Web Worker.
         return null;
       }
-      if (!group.ads.some(({ renderUrl }) => renderUrl === bidData.render)) {
+      const { adJson, bid, render } = bidData;
+      if (!group.ads.some(({ renderUrl }) => renderUrl === render)) {
         logWarning("Bid render URL", [
-          bidData.render,
+          render,
           "is not in interest group:",
           group,
         ]);
         return null;
       }
-      // Silently discard zero, negative, infinite, and NaN bids.
-      if (!(bidData.bid > 0 && bidData.bid < Infinity)) {
+      const scoringScript = await scoringScriptPromise;
+      if (scoringScript === null) {
         return null;
       }
-      return bidData;
+      const score = await runScoringScript(
+        scoringScript,
+        adJson,
+        bid,
+        config,
+        extraScript
+      );
+      // If null, error has already been logged in the Web Worker.
+      // Also silently discard zero, negative, infinite, and NaN scores.
+      if (!(score !== null && score > 0 && score < Infinity)) {
+        return null;
+      }
+      return { render, score };
     }
     case FetchStatus.NETWORK_ERROR:
       // Browser will have logged the error; no need to log it again.

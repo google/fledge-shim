@@ -40,8 +40,10 @@ const requests: Array<{ request: FledgeRequest; messageData: unknown }> = [
         biddingLogicUrl: "https://dsp.example/bidder.js",
         trustedBiddingSignalsUrl: "https://trusted-server.example/bidding",
         ads: [
-          { renderUrl: "https://ad.example/1", metadata: { price: 0.02 } },
-          { renderUrl: "https://ad.example/2", metadata: { price: 0.04 } },
+          { renderUrl: "https://ad.example/1", metadata: [] },
+          { renderUrl: "https://ad.example/2", metadata: {} },
+          { renderUrl: "https://ad.example/3", metadata: [null] },
+          { renderUrl: "https://ad.example/4", metadata: { "price": 0.04 } },
         ],
       },
     },
@@ -51,8 +53,10 @@ const requests: Array<{ request: FledgeRequest; messageData: unknown }> = [
       "https://dsp.example/bidder.js",
       "https://trusted-server.example/bidding",
       [
-        ["https://ad.example/1", 0.02],
-        ["https://ad.example/2", 0.04],
+        ["https://ad.example/1", "[]"],
+        ["https://ad.example/2", "{}"],
+        ["https://ad.example/3", "[null]"],
+        ["https://ad.example/4", '{"price":0.04}'],
       ],
     ],
   },
@@ -70,19 +74,28 @@ const requests: Array<{ request: FledgeRequest; messageData: unknown }> = [
   {
     request: {
       kind: RequestKind.RUN_AD_AUCTION,
-      config: { trustedScoringSignalsUrl: undefined },
+      config: {
+        decisionLogicUrl: "https://ssp.example/scorer.js",
+        trustedScoringSignalsUrl: undefined,
+      },
     },
-    messageData: [RequestKind.RUN_AD_AUCTION, undefined],
+    messageData: [
+      RequestKind.RUN_AD_AUCTION,
+      "https://ssp.example/scorer.js",
+      undefined,
+    ],
   },
   {
     request: {
       kind: RequestKind.RUN_AD_AUCTION,
       config: {
+        decisionLogicUrl: "https://ssp.example/scorer.js",
         trustedScoringSignalsUrl: "https://trusted-server.example/scoring",
       },
     },
     messageData: [
       RequestKind.RUN_AD_AUCTION,
+      "https://ssp.example/scorer.js",
       "https://trusted-server.example/scoring",
     ],
   },
@@ -155,7 +168,7 @@ describe("requestFromMessageData", () => {
       "interest group name",
       "https://dsp.example/bidder.js",
       "https://trusted-server.example/bidding",
-      [["https://ad.example/1", 0.02], []],
+      [["https://ad.example/1", undefined], []],
     ],
     [
       RequestKind.JOIN_AD_INTEREST_GROUP,
@@ -163,8 +176,8 @@ describe("requestFromMessageData", () => {
       "https://dsp.example/bidder.js",
       "https://trusted-server.example/bidding",
       [
-        ["https://ad.example/1", 0.02, true],
-        ["https://ad.example/2", 0.04],
+        ["https://ad.example/1", undefined, true],
+        ["https://ad.example/2", undefined],
       ],
     ],
     [
@@ -173,9 +186,9 @@ describe("requestFromMessageData", () => {
       "https://dsp.example/bidder.js",
       "https://trusted-server.example/bidding",
       [
-        ["https://ad.example/1", 0.02],
-        ["https://ad.example/2", 0.04],
-        [42, 0.06],
+        ["https://ad.example/1", undefined],
+        ["https://ad.example/2", undefined],
+        [42, undefined],
       ],
     ],
     [
@@ -184,9 +197,31 @@ describe("requestFromMessageData", () => {
       "https://dsp.example/bidder.js",
       "https://trusted-server.example/bidding",
       [
-        ["https://ad.example/1", 0.02],
-        ["https://ad.example/2", "nope"],
-        ["https://ad.example/3", 0.04],
+        ["https://ad.example/1", undefined],
+        ["https://ad.example/2", {}],
+        ["https://ad.example/3", undefined],
+      ],
+    ],
+    [
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "interest group name",
+      "https://dsp.example/bidder.js",
+      "https://trusted-server.example/bidding",
+      [
+        ["https://ad.example/1", undefined],
+        ["https://ad.example/2", "invalid JSON"],
+        ["https://ad.example/3", undefined],
+      ],
+    ],
+    [
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "interest group name",
+      "https://dsp.example/bidder.js",
+      "https://trusted-server.example/bidding",
+      [
+        ["https://ad.example/1", undefined],
+        ["https://ad.example/2", '"nope"'],
+        ["https://ad.example/3", undefined],
       ],
     ],
     [RequestKind.LEAVE_AD_INTEREST_GROUP],
@@ -213,6 +248,47 @@ describe("messageDataFromRequest", () => {
     });
   }
 
+  it(`should lossily convert serializable request to message data`, () => {
+    expect(
+      messageDataFromRequest({
+        kind: RequestKind.JOIN_AD_INTEREST_GROUP,
+        group: {
+          name: "interest group name",
+          biddingLogicUrl: "https://dsp.example/bidder.js",
+          trustedBiddingSignalsUrl: "https://trusted-server.example/bidding",
+          ads: [
+            { renderUrl: "https://ad.example/1", metadata: [undefined] },
+            { renderUrl: "https://ad.example/2", metadata: [Symbol.species] },
+            { renderUrl: "https://ad.example/3", metadata: [() => null] },
+            { renderUrl: "https://ad.example/4", metadata: /abc/ },
+            { renderUrl: "https://ad.example/5", metadata: new (class {})() },
+            {
+              renderUrl: "https://ad.example/6",
+              metadata: new (class {
+                toJSON() {
+                  return [0.02];
+                }
+              })(),
+            },
+          ],
+        },
+      })
+    ).toEqual([
+      RequestKind.JOIN_AD_INTEREST_GROUP,
+      "interest group name",
+      "https://dsp.example/bidder.js",
+      "https://trusted-server.example/bidding",
+      [
+        ["https://ad.example/1", "[null]"],
+        ["https://ad.example/2", "[null]"],
+        ["https://ad.example/3", "[null]"],
+        ["https://ad.example/4", "{}"],
+        ["https://ad.example/5", "{}"],
+        ["https://ad.example/6", "[0.02]"],
+      ],
+    ]);
+  });
+
   it("should handle optional fields", () => {
     expect(
       messageDataFromRequest({
@@ -237,12 +313,40 @@ describe("messageDataFromRequest", () => {
           biddingLogicUrl: "https://dsp.example/bidder.js",
           trustedBiddingSignalsUrl: "https://trusted-server.example/bidding",
           ads: [
-            { renderUrl: "https://ad.example/1", metadata: { price: 0.02 } },
-            { renderUrl: "https://ad.example/2", metadata: { price: 0.04 } },
+            { renderUrl: "https://ad.example/1", metadata: { "price": 0.02 } },
+            { renderUrl: "https://ad.example/2", metadata: { "price": 0.04 } },
           ],
         },
       })
     ).toEqual([RequestKind.LEAVE_AD_INTEREST_GROUP, "interest group name"]);
+  });
+
+  it("should fail to convert function metadata", () => {
+    expect(() => {
+      messageDataFromRequest({
+        kind: RequestKind.JOIN_AD_INTEREST_GROUP,
+        group: {
+          name: "interest group name",
+          biddingLogicUrl: "https://dsp.example/bidder.js",
+          ads: [{ renderUrl: "https://ad.example/1", metadata: () => null }],
+        },
+      });
+    }).toThrowError();
+  });
+
+  it("should fail to convert cyclic metadata", () => {
+    const metadata: { prop?: unknown } = {};
+    metadata.prop = metadata;
+    expect(() => {
+      messageDataFromRequest({
+        kind: RequestKind.JOIN_AD_INTEREST_GROUP,
+        group: {
+          name: "interest group name",
+          biddingLogicUrl: "https://dsp.example/bidder.js",
+          ads: [{ renderUrl: "https://ad.example/1", metadata }],
+        },
+      });
+    }).toThrowError();
   });
 });
 

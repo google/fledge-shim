@@ -24,26 +24,8 @@ export interface AuctionAd {
    */
   renderUrl: string;
   /** Additional metadata about this ad that can be read by the auction. */
-  metadata: {
-    /**
-     * The amount that the buyer is willing to pay in order to have this ad
-     * selected. The ad with the highest price is selected; in case of a tie, an
-     * ad with the highest price is selected based on database order.
-     *
-     * This is used by our temporary hardcoded auction logic and will not exist
-     * in browser-native implementations of FLEDGE (in which auction logic, and
-     * the structure and semantics of ad metadata, will be user-defined).
-     *
-     * The precise meaning of this value (what currency it's in, CPM vs. CPC,
-     * etc.) is a matter of convention among buyers and sellers. The current
-     * implementation requires the entire ecosystem to adopt a uniform
-     * convention, which is impractical, but future implementations will allow
-     * sellers to choose which buyers to transact with, which will allow them to
-     * deal only with buyers with whom they've made out-of-band agreements that
-     * specify the meaning.
-     */
-    price: number;
-  };
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  metadata?: object;
 }
 
 /**
@@ -84,6 +66,15 @@ export interface AuctionAdInterestGroup {
  * @see https://github.com/WICG/turtledove/blob/main/FLEDGE.md#2-sellers-run-on-device-auctions
  */
 export interface AuctionAdConfig {
+  /**
+   * An HTTPS URL. At auction time, the auction script is fetched from here and
+   * its `scoreAd` function is called in an isolated worklet-like environment.
+   * The script must be served with a JavaScript MIME type and with the header
+   * `X-FLEDGE-Shim: true`, and its URL must begin with one of the prefixes
+   * specified when building the frame. If undefined, the entire auction is
+   * silently skipped.
+   */
+  decisionLogicUrl: string;
   /**
    * An HTTPS URL with no query string. If provided, a request to this URL is
    * made at auction time. The response is expected to be a JSON object.
