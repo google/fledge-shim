@@ -63,7 +63,7 @@ describe("runBiddingScript", () => {
     { expression: "{}", adJson: "{}" },
     { expression: "[undefined]", adJson: "[null]" },
     { expression: "[null]", adJson: "[null]" },
-    { expression: "[Symbol.species]", adJson: "[null]" },
+    { expression: "[Symbol.iterator]", adJson: "[null]" },
     { expression: "[() => {}]", adJson: "[null]" },
     { expression: "/abc/", adJson: "{}" },
     { expression: "new (class {})()", adJson: "{}" },
@@ -137,7 +137,7 @@ describe("runBiddingScript", () => {
       condition: "ad is a symbol",
       biddingScript: [
         "function generateBid() {",
-        "  return { ad: Symbol.species, bid: 0.03, render: 'about:blank#2' };",
+        "  return { ad: Symbol.iterator, bid: 0.03, render: 'about:blank#2' };",
         "}",
       ].join("\n"),
       warningData: "[object Object]",

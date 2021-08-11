@@ -258,7 +258,7 @@ describe("messageDataFromRequest", () => {
           trustedBiddingSignalsUrl: "https://trusted-server.example/bidding",
           ads: [
             { renderUrl: "https://ad.example/1", metadata: [undefined] },
-            { renderUrl: "https://ad.example/2", metadata: [Symbol.species] },
+            { renderUrl: "https://ad.example/2", metadata: [Symbol.iterator] },
             { renderUrl: "https://ad.example/3", metadata: [() => null] },
             { renderUrl: "https://ad.example/4", metadata: /abc/ },
             { renderUrl: "https://ad.example/5", metadata: new (class {})() },
