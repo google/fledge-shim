@@ -10,7 +10,7 @@
  * JavaScript code can't create custom worklets, so we use Web Workers instead.)
  */
 
-import { AuctionAdConfig } from "../lib/public_api";
+import { AuctionAdConfig } from "../lib/shared/api_types";
 import { isArray } from "../lib/shared/guards";
 import { awaitMessageToWorker } from "../lib/shared/messaging";
 import { BidData, CanonicalInterestGroup } from "./types";
