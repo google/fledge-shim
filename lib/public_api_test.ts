@@ -602,9 +602,9 @@ describe("FledgeShim", () => {
       expectAsync(
         create().runAdAuction({
           decisionLogicUrl,
-          trustedScoringSignalsUrl: "This string is not a URL.",
+          trustedScoringSignalsUrl: "This string is not a URL.\n",
         })
-      ).toBeRejectedWithError(/.*This string is not a URL\..*/));
+      ).toBeRejectedWithError(/.*This string is not a URL\.\n.*/));
 
     it("should reject on a non-HTTPS URL", () =>
       expectAsync(

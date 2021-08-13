@@ -1257,7 +1257,7 @@ describe("runAdAuction", () => {
       });
     setFakeServerHandler(fakeServerHandler);
     const consoleSpy = spyOnAllFunctions(console);
-    const notUrl = "This string is not a URL.";
+    const notUrl = "This string is not a URL.\n";
     expect(
       await runAdAuction(
         { decisionLogicUrl, trustedScoringSignalsUrl: notUrl },
