@@ -1,6 +1,11 @@
 # FLEDGE Shim
 
-We're building a pure-JavaScript implementation of the
+Note: this project is on hold.  Chrome's prototype FLEDGE implementation is
+accessible locally with feature flags, and per the [Privacy Sandbox
+Timeline](https://privacysandbox.com/timeline/) broader testing should be
+possible soon.
+
+This is the beginning of a pure-JavaScript implementation of the
 [FLEDGE proposal](https://github.com/WICG/turtledove/blob/main/FLEDGE.md), on
 top of existing browser APIs. The goal is to allow testing as much of FLEDGE as
 possible, in as realistic a manner as possible, given the constraint of not
