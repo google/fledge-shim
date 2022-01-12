@@ -1,9 +1,9 @@
 # FLEDGE Shim
 
 Note: this project is on hold. Chrome's prototype FLEDGE implementation is
-accessible locally with feature flags, and per the [Privacy Sandbox
-Timeline](https://privacysandbox.com/timeline/) broader testing should be
-possible soon.
+accessible locally with feature flags, and per the
+[Privacy Sandbox Timeline](https://privacysandbox.com/timeline/) broader testing
+should be possible soon.
 
 This is the beginning of a pure-JavaScript implementation of the
 [FLEDGE proposal](https://github.com/WICG/turtledove/blob/main/FLEDGE.md), on
