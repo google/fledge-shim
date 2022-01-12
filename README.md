@@ -1,6 +1,6 @@
 # FLEDGE Shim
 
-Note: this project is on hold.  Chrome's prototype FLEDGE implementation is
+Note: this project is on hold. Chrome's prototype FLEDGE implementation is
 accessible locally with feature flags, and per the [Privacy Sandbox
 Timeline](https://privacysandbox.com/timeline/) broader testing should be
 possible soon.
