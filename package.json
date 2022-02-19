@@ -23,7 +23,7 @@
     "eslint-plugin-jsdoc": "^37.6.1",
     "html-webpack-plugin": "^5.5.0",
     "jasmine-core": "^4.0.0",
-    "karma": "^6.3.9",
+    "karma": "^6.3.10",
     "karma-chrome-launcher": "^3.1.0",
     "karma-jasmine": "^4.0.1",
     "karma-typescript": "^5.5.2",
